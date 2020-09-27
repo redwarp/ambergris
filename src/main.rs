@@ -1,6 +1,7 @@
 use crate::components::*;
 use crate::engine::Engine;
 use crate::resources::PlayerInfo;
+use game::RunState;
 use legion::{Resources, World};
 use rand::rngs::StdRng;
 use rand::SeedableRng;
@@ -20,11 +21,10 @@ fn main() {
     let _player = world.push((
         Player,
         Body {
+            name: "player".into(),
             x: 10,
             y: 10,
             blocking: true,
-        },
-        Renderable {
             char: '@',
             color: tcod::colors::YELLOW,
         },
@@ -34,11 +34,9 @@ fn main() {
         world,
         map,
         resources: Resources::default(),
+        run_state: RunState::Running,
     };
-    state.resources.insert(PlayerInfo {
-        entity: _player,
-        position: (0, 0),
-    });
+    state.resources.insert(PlayerInfo { position: (0, 0) });
 
     let mut renderer = Engine::new();
 

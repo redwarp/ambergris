@@ -163,24 +163,26 @@ fn place_objects(world: &mut World, rng: &mut StdRng, map: &Map, room: &Rect) {
         let y = rng.gen_range(room.y1 + 1, room.y2);
 
         if !map.is_blocked(x, y, world) {
-            let body = Body {
-                x,
-                y,
-                blocking: true,
-            };
-
-            let renderable = if rand::random::<f32>() < 0.8 {
-                Renderable {
+            let body = if rand::random::<f32>() < 0.8 {
+                Body {
+                    name: "orc".into(),
+                    x,
+                    y,
+                    blocking: true,
                     char: 'o',
                     color: tcod::colors::DESATURATED_GREEN,
                 }
             } else {
-                Renderable {
+                Body {
+                    name: "troll".into(),
+                    x,
+                    y,
+                    blocking: true,
                     char: 'T',
                     color: tcod::colors::DARKER_GREEN,
                 }
             };
-            world.push((body, renderable, Monster { ai: Ai::Basic }));
+            world.push((body, Monster { ai: Ai::Basic }));
         }
     }
 }

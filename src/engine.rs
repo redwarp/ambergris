@@ -1,6 +1,7 @@
-use crate::game::State;
+use crate::game::{RunState, State};
+use crate::systems;
 use crate::{
-    components::{Body, Player, Renderable},
+    components::{Body, Player},
     map::Map,
 };
 use input::Event;
@@ -8,6 +9,7 @@ use input::Key;
 use input::KeyCode;
 use input::Mouse;
 use legion::IntoQuery;
+use legion::Schedule;
 use tcod::console::{blit, BackgroundFlag, Console, FontLayout, FontType, Offscreen, Root};
 use tcod::map::FovAlgorithm;
 use tcod::map::Map as FovMap;
@@ -65,12 +67,20 @@ impl Engine {
     }
 
     pub fn run(&mut self, state: &mut State) {
+        let mut schedule = Schedule::builder()
+            .add_system(systems::new_turn_system())
+            .add_system(systems::monster_move_system())
+            .build();
+
         while !self.root.window_closed() {
             let (_mouse, key) = check_for_event();
-            let key_action = self.consume_key(state, key);
-            match key_action {
-                KeyAction::Exit => break,
-                _ => {}
+            state.run_state = self.consume_key(state, key);
+            match state.run_state {
+                RunState::Exit => break,
+                RunState::Running => {
+                    schedule.execute(&mut state.world, &mut state.resources);
+                }
+                RunState::Paused => {}
             }
 
             self.root.clear();
@@ -85,16 +95,12 @@ impl Engine {
         self.console.clear();
         self.render_map(state, fov_recompute);
 
-        let mut query = <(&Body, &Renderable)>::query();
-        for (position, renderable) in query.iter(&state.world) {
-            if self.fov.is_in_fov(position.x, position.y) {
-                self.root.set_default_foreground(renderable.color);
-                self.root.put_char(
-                    position.x,
-                    position.y,
-                    renderable.char,
-                    BackgroundFlag::None,
-                );
+        let mut query = <&Body>::query();
+        for body in query.iter(&state.world) {
+            if self.fov.is_in_fov(body.x, body.y) {
+                self.root.set_default_foreground(body.color);
+                self.root
+                    .put_char(body.x, body.y, body.char, BackgroundFlag::None);
             }
         }
     }
@@ -148,7 +154,7 @@ impl Engine {
         );
     }
 
-    fn consume_key(&mut self, state: &mut State, key: Key) -> KeyAction {
+    fn consume_key(&mut self, state: &mut State, key: Key) -> RunState {
         match (key, key.text()) {
             (
                 Key {
@@ -157,7 +163,7 @@ impl Engine {
                 _,
             ) => {
                 state.move_player(0, -1);
-                KeyAction::TookTurn
+                RunState::Running
             }
             (
                 Key {
@@ -167,7 +173,7 @@ impl Engine {
                 _,
             ) => {
                 state.move_player(0, 1);
-                KeyAction::TookTurn
+                RunState::Running
             }
             (
                 Key {
@@ -177,7 +183,7 @@ impl Engine {
                 _,
             ) => {
                 state.move_player(-1, 0);
-                KeyAction::TookTurn
+                RunState::Running
             }
             (
                 Key {
@@ -187,7 +193,7 @@ impl Engine {
                 _,
             ) => {
                 state.move_player(1, 0);
-                KeyAction::TookTurn
+                RunState::Running
             }
             (
                 Key {
@@ -195,8 +201,8 @@ impl Engine {
                     ..
                 },
                 _,
-            ) => KeyAction::Exit,
-            _ => KeyAction::DidNothing,
+            ) => RunState::Exit,
+            _ => RunState::Paused,
         }
     }
 }
@@ -224,10 +230,4 @@ fn check_for_event() -> (Mouse, Key) {
         Some((_, Event::Key(key))) => (Default::default(), key),
         _ => (Default::default(), Default::default()),
     }
-}
-
-enum KeyAction {
-    TookTurn,
-    DidNothing,
-    Exit,
 }

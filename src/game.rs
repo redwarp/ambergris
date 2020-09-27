@@ -1,6 +1,6 @@
 use crate::components::*;
 use crate::map::Map;
-use legion::query;
+use crate::resources::PlayerInfo;
 use legion::IntoQuery;
 use legion::Resources;
 use legion::World;
@@ -9,6 +9,7 @@ pub struct State {
     pub world: World,
     pub map: Map,
     pub resources: Resources,
+    pub run_state: RunState,
 }
 
 pub enum Ai {
@@ -31,5 +32,14 @@ impl State {
             body.x = new_x;
             body.y = new_y;
         }
+        self.resources.insert(PlayerInfo {
+            position: (new_x, new_y),
+        })
     }
+}
+
+pub enum RunState {
+    Paused,
+    Running,
+    Exit,
 }
