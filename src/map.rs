@@ -1,4 +1,4 @@
-use crate::component::*;
+use crate::{components::*, game::Ai};
 
 use legion::IntoQuery;
 use legion::World;
@@ -74,6 +74,18 @@ pub struct Map {
     pub tiles: Vec<Vec<Tile>>,
 }
 
+impl Map {
+    pub fn is_blocked(&self, x: i32, y: i32, world: &World) -> bool {
+        if self.tiles[x as usize][y as usize].blocked {
+            return true;
+        }
+        let mut query = <&Body>::query();
+        query
+            .iter(world)
+            .any(|position| position.blocking && position.coordinates() == (x, y))
+    }
+}
+
 pub fn make_map(world: &mut World, rng: &mut StdRng) -> Map {
     let mut map = Map {
         width: MAP_WIDTH,
@@ -124,16 +136,6 @@ pub fn make_map(world: &mut World, rng: &mut StdRng) -> Map {
     map
 }
 
-fn is_blocked(x: i32, y: i32, map: &Map, world: &World) -> bool {
-    if map.tiles[x as usize][y as usize].blocked {
-        return true;
-    }
-    let mut query = <&Body>::query();
-    query
-        .iter(world)
-        .any(|position| position.blocking && position.coordinates() == (x, y))
-}
-
 fn create_room(room: &Rect, map: &mut Map) {
     for x in (room.x1 + 1)..room.x2 {
         for y in (room.y1 + 1)..room.y2 {
@@ -160,7 +162,7 @@ fn place_objects(world: &mut World, rng: &mut StdRng, map: &Map, room: &Rect) {
         let x = rng.gen_range(room.x1 + 1, room.x2);
         let y = rng.gen_range(room.y1 + 1, room.y2);
 
-        if !is_blocked(x, y, map, world) {
+        if !map.is_blocked(x, y, world) {
             let body = Body {
                 x,
                 y,
@@ -178,7 +180,7 @@ fn place_objects(world: &mut World, rng: &mut StdRng, map: &Map, room: &Rect) {
                     color: tcod::colors::DARKER_GREEN,
                 }
             };
-            world.push((body, renderable));
+            world.push((body, renderable, Monster { ai: Ai::Basic }));
         }
     }
 }

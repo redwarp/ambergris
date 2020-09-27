@@ -1,14 +1,16 @@
-use crate::component::*;
+use crate::components::*;
 use crate::engine::Engine;
-use legion::World;
-
+use crate::resources::PlayerInfo;
+use legion::{Resources, World};
 use rand::rngs::StdRng;
 use rand::SeedableRng;
 
-mod component;
+mod components;
 mod engine;
 mod game;
 mod map;
+mod resources;
+mod systems;
 
 fn main() {
     println!("Hello, world!");
@@ -28,7 +30,15 @@ fn main() {
         },
     ));
     let map = crate::map::make_map(&mut world, &mut rng);
-    let mut state = crate::game::State { world, map };
+    let mut state = crate::game::State {
+        world,
+        map,
+        resources: Resources::default(),
+    };
+    state.resources.insert(PlayerInfo {
+        entity: _player,
+        position: (0, 0),
+    });
 
     let mut renderer = Engine::new();
 

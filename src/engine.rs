@@ -1,13 +1,17 @@
 use crate::game::State;
 use crate::{
-    component::{Body, Player, Renderable},
+    components::{Body, Player, Renderable},
     map::Map,
 };
+use input::Event;
+use input::Key;
+use input::KeyCode;
+use input::Mouse;
 use legion::IntoQuery;
-use tcod::colors::Color;
 use tcod::console::{blit, BackgroundFlag, Console, FontLayout, FontType, Offscreen, Root};
 use tcod::map::FovAlgorithm;
 use tcod::map::Map as FovMap;
+use tcod::{colors::Color, input};
 
 // actual size of the window
 const SCREEN_WIDTH: i32 = 80;
@@ -52,6 +56,7 @@ impl Engine {
             .title("Rust/libtcod tutorial")
             .init();
 
+        tcod::system::set_fps(LIMIT_FPS);
         Engine {
             root,
             console: Offscreen::new(1, 1),
@@ -60,79 +65,140 @@ impl Engine {
     }
 
     pub fn run(&mut self, state: &mut State) {
-        self.root.clear();
+        while !self.root.window_closed() {
+            let (_mouse, key) = check_for_event();
+            let key_action = self.consume_key(state, key);
+            match key_action {
+                KeyAction::Exit => break,
+                _ => {}
+            }
 
-        render_all(self, state, true);
+            self.root.clear();
 
-        self.root.flush();
-        self.root.wait_for_keypress(true);
+            self.render_all(state, true);
+
+            self.root.flush();
+        }
     }
-}
 
-fn render_all(engine: &mut Engine, state: &mut State, fov_recompute: bool) {
-    render_map(engine, state, fov_recompute);
+    fn render_all(&mut self, state: &mut State, fov_recompute: bool) {
+        self.console.clear();
+        self.render_map(state, fov_recompute);
 
-    let mut query = <(&Body, &Renderable)>::query();
-    for (position, renderable) in query.iter(&state.world) {
-        engine.root.set_default_foreground(renderable.color);
-        engine.root.put_char(
-            position.x,
-            position.y,
-            renderable.char,
-            BackgroundFlag::None,
+        let mut query = <(&Body, &Renderable)>::query();
+        for (position, renderable) in query.iter(&state.world) {
+            if self.fov.is_in_fov(position.x, position.y) {
+                self.root.set_default_foreground(renderable.color);
+                self.root.put_char(
+                    position.x,
+                    position.y,
+                    renderable.char,
+                    BackgroundFlag::None,
+                );
+            }
+        }
+    }
+
+    fn render_map(&mut self, state: &mut State, fov_recompute: bool) {
+        let map = &mut state.map;
+        if self.console.width() != map.width || self.console.height() != map.height {
+            self.console = Offscreen::new(map.width, map.height);
+            self.fov = make_fov(map);
+        }
+
+        if fov_recompute {
+            let mut query = <(&Player, &Body)>::query();
+            for (_, body) in query.iter(&state.world) {
+                self.fov
+                    .compute_fov(body.x, body.y, TORCH_RADIUS, FOV_LIGHT_WALLS, FOV_ALGO);
+            }
+        }
+
+        for y in 0..map.height {
+            for x in 0..map.width {
+                let visible = self.fov.is_in_fov(x, y);
+                let wall = map.tiles[x as usize][y as usize].block_sight;
+                let color = match (visible, wall) {
+                    (false, true) => COLOR_DARK_WALL,
+                    (false, false) => COLOR_DARK_GROUND,
+                    (true, true) => COLOR_LIGHT_WALL,
+                    (true, false) => COLOR_LIGHT_GROUND,
+                };
+
+                let explored = &mut map.tiles[x as usize][y as usize].explored;
+                if visible {
+                    *explored = true;
+                }
+
+                if *explored {
+                    self.console
+                        .set_char_background(x, y, color, BackgroundFlag::Set);
+                }
+            }
+        }
+
+        blit(
+            &self.console,
+            (0, 0),
+            (map.width, map.height),
+            &mut self.root,
+            (0, 0),
+            1.0,
+            1.0,
         );
     }
-}
 
-fn render_map(engine: &mut Engine, state: &mut State, fov_recompute: bool) {
-    let map = &mut state.map;
-    if engine.console.width() != map.width || engine.console.height() != map.height {
-        engine.console = Offscreen::new(map.width, map.height);
-        engine.fov = make_fov(map);
-    }
-
-    if fov_recompute {
-        let mut query = <(&Player, &Body)>::query();
-        for (_, body) in query.iter(&state.world) {
-            engine
-                .fov
-                .compute_fov(body.x, body.y, TORCH_RADIUS, FOV_LIGHT_WALLS, FOV_ALGO);
+    fn consume_key(&mut self, state: &mut State, key: Key) -> KeyAction {
+        match (key, key.text()) {
+            (
+                Key {
+                    code: KeyCode::Up, ..
+                },
+                _,
+            ) => {
+                state.move_player(0, -1);
+                KeyAction::TookTurn
+            }
+            (
+                Key {
+                    code: KeyCode::Down,
+                    ..
+                },
+                _,
+            ) => {
+                state.move_player(0, 1);
+                KeyAction::TookTurn
+            }
+            (
+                Key {
+                    code: KeyCode::Left,
+                    ..
+                },
+                _,
+            ) => {
+                state.move_player(-1, 0);
+                KeyAction::TookTurn
+            }
+            (
+                Key {
+                    code: KeyCode::Right,
+                    ..
+                },
+                _,
+            ) => {
+                state.move_player(1, 0);
+                KeyAction::TookTurn
+            }
+            (
+                Key {
+                    code: KeyCode::Escape,
+                    ..
+                },
+                _,
+            ) => KeyAction::Exit,
+            _ => KeyAction::DidNothing,
         }
     }
-
-    for y in 0..map.height {
-        for x in 0..map.width {
-            let visible = engine.fov.is_in_fov(x, y);
-            let wall = map.tiles[x as usize][y as usize].block_sight;
-            let color = match (visible, wall) {
-                (false, true) => COLOR_DARK_WALL,
-                (false, false) => COLOR_DARK_GROUND,
-                (true, true) => COLOR_LIGHT_WALL,
-                (true, false) => COLOR_LIGHT_GROUND,
-            };
-
-            let explored = &mut map.tiles[x as usize][y as usize].explored;
-            if visible {
-                *explored = true;
-            }
-
-            if *explored {
-                engine
-                    .console
-                    .set_char_background(x, y, color, BackgroundFlag::Set);
-            }
-        }
-    }
-
-    blit(
-        &engine.console,
-        (0, 0),
-        (map.width, map.height),
-        &mut engine.root,
-        (0, 0),
-        1.0,
-        1.0,
-    );
 }
 
 fn make_fov(map: &Map) -> FovMap {
@@ -150,4 +216,18 @@ fn make_fov(map: &Map) -> FovMap {
     }
 
     fov
+}
+
+fn check_for_event() -> (Mouse, Key) {
+    match input::check_for_event(input::MOUSE | input::KEY_PRESS) {
+        Some((_, Event::Mouse(mouse))) => (mouse, Default::default()),
+        Some((_, Event::Key(key))) => (Default::default(), key),
+        _ => (Default::default(), Default::default()),
+    }
+}
+
+enum KeyAction {
+    TookTurn,
+    DidNothing,
+    Exit,
 }

@@ -1,3 +1,4 @@
+use crate::game::{Ai, Position};
 use tcod::colors::Color;
 
 pub struct Body {
@@ -7,7 +8,7 @@ pub struct Body {
 }
 
 impl Body {
-    pub fn coordinates(&self) -> (i32, i32) {
+    pub fn coordinates(&self) -> Position {
         (self.x, self.y)
     }
 }
@@ -18,3 +19,7 @@ pub struct Renderable {
 }
 
 pub struct Player;
+
+pub struct Monster {
+    pub ai: Ai,
+}
