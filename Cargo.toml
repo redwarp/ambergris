@@ -1,0 +1,13 @@
+[package]
+name = "anbar"
+version = "0.1.0"
+authors = ["Redwarp <redwarp@gmail.com>"]
+edition = "2018"
+description = "Every journey must start somewhere."
+readme = "README.md"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[dependencies]
+tcod = { version = "0.15.0", features = ["serialization"] }
+rand = "0.7.3"
+legion = "0.3.0"
