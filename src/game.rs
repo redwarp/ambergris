@@ -1,6 +1,7 @@
 use crate::components::*;
 use crate::map::Map;
 use crate::resources::PlayerInfo;
+use legion::Entity;
 use legion::IntoQuery;
 use legion::Resources;
 use legion::World;
@@ -10,6 +11,7 @@ pub struct State {
     pub map: Map,
     pub resources: Resources,
     pub run_state: RunState,
+    pub player_entity: Entity,
 }
 
 pub enum Ai {
@@ -22,13 +24,16 @@ impl State {
     pub fn ai_turn() {}
 
     pub fn move_player(&mut self, dx: i32, dy: i32) {
-        let mut query = <(&Player, &mut Body)>::query();
-        let (_, body) = query.iter_mut(&mut self.world).next().unwrap();
+        let body = <&Body>::query()
+            .get(&mut self.world, self.player_entity)
+            .unwrap();
 
         let (new_x, new_y) = (body.x + dx, body.y + dy);
 
         if !self.map.is_blocked(new_x, new_y, &self.world) {
-            let (_, body) = query.iter_mut(&mut self.world).next().unwrap();
+            let body = <&mut Body>::query()
+                .get_mut(&mut self.world, self.player_entity)
+                .unwrap();
             body.x = new_x;
             body.y = new_y;
         }

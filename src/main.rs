@@ -18,7 +18,7 @@ fn main() {
 
     let mut rng = StdRng::seed_from_u64(42);
     let mut world = World::default();
-    let _player = world.push((
+    let player_entity = world.push((
         Player,
         Body {
             name: "player".into(),
@@ -35,6 +35,7 @@ fn main() {
         map,
         resources: Resources::default(),
         run_state: RunState::Running,
+        player_entity,
     };
     state.resources.insert(PlayerInfo { position: (0, 0) });
 
