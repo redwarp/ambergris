@@ -1,4 +1,5 @@
-use crate::game::{Ai, Position};
+use crate::game::Ai;
+use crate::map::Position;
 use legion::Entity;
 use tcod::colors::Color;
 
@@ -12,8 +13,13 @@ pub struct Body {
 }
 
 impl Body {
-    pub fn coordinates(&self) -> Position {
+    pub fn position(&self) -> Position {
         (self.x, self.y)
+    }
+
+    pub fn set_position(&mut self, position: Position) {
+        self.x = position.0;
+        self.y = position.1;
     }
 
     pub fn distance_to(&self, position: Position) -> f32 {

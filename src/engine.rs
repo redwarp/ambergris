@@ -73,14 +73,19 @@ impl Engine {
         let mut schedule = Schedule::builder()
             .add_system(systems::move_actions_system())
             .add_system(systems::monster_move_system())
+            .add_system(systems::update_map_and_position_system())
             .build();
 
+        let mut previous_position = state.resources.get_or_default::<PlayerInfo>().position;
+
         while !self.root.window_closed() {
-            let previous_position = state.resources.get_or_default::<PlayerInfo>().position;
             let previous_state = state.run_state.clone();
             let (_mouse, key) = check_for_event();
             let new_run_state = match state.run_state {
-                RunState::Exit => break,
+                RunState::Init => {
+                    schedule.execute(&mut state.world, &mut state.resources);
+                    RunState::WaitForInput
+                }
                 RunState::PlayerTurn => {
                     schedule.execute(&mut state.world, &mut state.resources);
                     RunState::WaitForInput
@@ -90,6 +95,8 @@ impl Engine {
                     RunState::WaitForInput
                 }
                 RunState::WaitForInput => self.consume_key(state, key),
+
+                RunState::Exit => break,
             };
             state.run_state = new_run_state;
             if previous_state == RunState::WaitForInput {
@@ -100,13 +107,16 @@ impl Engine {
             self.root.clear();
 
             let updated_position = state.resources.get_or_default::<PlayerInfo>().position;
-            self.render_all(state, previous_position == updated_position);
+            self.render_all(state, previous_position != updated_position);
 
             self.root.flush();
+
+            previous_position = updated_position;
         }
     }
 
     fn render_all(&mut self, state: &mut State, fov_recompute: bool) {
+        println!("Should recompute FOV: {}", fov_recompute);
         self.console.clear();
         self.render_map(state, fov_recompute);
 

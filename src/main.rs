@@ -35,7 +35,7 @@ fn main() {
     let mut state = State {
         world,
         resources,
-        run_state: RunState::PlayerTurn,
+        run_state: RunState::Init,
         player_entity,
     };
     state.resources.insert(PlayerInfo { position: (0, 0) });

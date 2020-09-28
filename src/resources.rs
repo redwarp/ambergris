@@ -1,4 +1,4 @@
-use crate::game::Position;
+use crate::map::Position;
 
 pub struct PlayerInfo {
     pub position: Position,

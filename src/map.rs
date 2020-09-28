@@ -12,6 +12,8 @@ const ROOM_MIN_SIZE: i32 = 6;
 const MAX_ROOM: i32 = 30;
 const MAX_ROOM_MONSTERS: i32 = 3;
 
+pub type Position = (i32, i32);
+
 #[derive(Clone)]
 pub struct Tile {
     pub blocking: bool,
@@ -70,17 +72,21 @@ pub struct Map {
     pub height: i32,
     pub tiles: Vec<Tile>,
     pub explored_tiles: Vec<bool>,
+    pub blocked: Vec<bool>,
 }
 
 impl Map {
-    pub fn is_blocked(&self, x: i32, y: i32, world: &World) -> bool {
-        if self.tiles[x as usize + y as usize * self.width as usize].blocking {
-            return true;
+    pub fn is_blocked(&self, position: Position) -> bool {
+        self.blocked[self.index(position)]
+    }
+
+    pub fn index(&self, position: Position) -> usize {
+        let (x, y) = position;
+        if x < 0 || x >= self.width || y < 0 || y >= self.height {
+            0
+        } else {
+            (x + y * self.width) as usize
         }
-        let mut query = <&Body>::query();
-        query
-            .iter(world)
-            .any(|position| position.blocking && position.coordinates() == (x, y))
     }
 }
 
@@ -91,6 +97,7 @@ pub fn make_map(world: &mut World, rng: &mut StdRng) -> Map {
         height: MAP_HEIGHT,
         tiles: vec![Tile::wall(); map_size],
         explored_tiles: vec![false; map_size],
+        blocked: vec![false; map_size],
     };
 
     let mut rooms: Vec<Rect> = vec![];
@@ -162,7 +169,7 @@ fn place_objects(world: &mut World, rng: &mut StdRng, map: &Map, room: &Rect) {
         let x = rng.gen_range(room.x1 + 1, room.x2);
         let y = rng.gen_range(room.y1 + 1, room.y2);
 
-        if !map.is_blocked(x, y, world) {
+        if !map.is_blocked((x, y)) {
             let body = if rand::random::<f32>() < 0.8 {
                 Body {
                     name: "orc".into(),

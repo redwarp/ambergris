@@ -17,8 +17,6 @@ pub enum Ai {
     Basic,
 }
 
-pub type Position = (i32, i32);
-
 impl State {
     pub fn ai_turn() {}
 
@@ -27,25 +25,22 @@ impl State {
             .get(&mut self.world, self.player_entity)
             .unwrap();
 
-        let (new_x, new_y) = (body.x + dx, body.y + dy);
+        let position = (body.x + dx, body.y + dy);
         let map = self.resources.get::<Map>().unwrap();
 
-        if !map.is_blocked(new_x, new_y, &self.world) {
+        if !map.is_blocked(position) {
             self.world.push((MoveAction {
                 dx,
                 dy,
                 entity: self.player_entity,
             },));
         }
-        drop(map);
-        self.resources.insert(PlayerInfo {
-            position: (new_x, new_y),
-        })
     }
 }
 
 #[derive(PartialEq, Clone)]
 pub enum RunState {
+    Init,
     WaitForInput,
     PlayerTurn,
     AiTurn,
