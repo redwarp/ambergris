@@ -1,7 +1,6 @@
 use crate::engine::Engine;
 use crate::resources::PlayerInfo;
 use crate::{components::*, game::State};
-use game::RunState;
 use legion::{Resources, World};
 use rand::rngs::StdRng;
 use rand::SeedableRng;
@@ -35,7 +34,6 @@ fn main() {
     let mut state = State {
         world,
         resources,
-        run_state: RunState::Init,
         player_entity,
     };
     state.resources.insert(PlayerInfo { position: (0, 0) });

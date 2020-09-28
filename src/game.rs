@@ -1,6 +1,5 @@
 use crate::components::*;
 use crate::map::Map;
-use crate::resources::PlayerInfo;
 use legion::Entity;
 use legion::IntoQuery;
 use legion::Resources;
@@ -9,7 +8,6 @@ use legion::World;
 pub struct State {
     pub world: World,
     pub resources: Resources,
-    pub run_state: RunState,
     pub player_entity: Entity,
 }
 

@@ -1,6 +1,6 @@
 use crate::components::*;
+use crate::game::RunState;
 use crate::map::Map;
-use crate::map::Position;
 use crate::resources::PlayerInfo;
 use legion::component;
 use legion::system;
@@ -13,14 +13,34 @@ use legion::IntoQuery;
 #[filter(!component::<Player>())]
 #[read_component(Player)]
 pub fn monster_move(
-    world: &mut SubWorld,
+    cmd: &mut CommandBuffer,
     body: &Body,
-    monster: &Monster,
+    _: &Monster,
+    entity: &Entity,
     #[resource] player_info: &PlayerInfo,
-    #[resource] map: &Map,
+    #[resource] run_state: &RunState,
 ) {
-    if body.distance_to(player_info.position) < 5.0 {
+    if run_state.clone() != RunState::AiTurn {
+        return;
+    }
+    let player_position = player_info.position;
+    let distance = body.distance_to(player_position);
+    if distance < 5.0 {
         println!("The {} sees you.", body.name);
+        if distance >= 2.0 {
+            let dx = player_position.0 - body.x;
+            let dy = player_position.1 - body.y;
+
+            let dx = (dx as f32 / distance).round() as i32;
+            let dy = (dy as f32 / distance).round() as i32;
+            println!("Entity {:?} set to move", entity);
+
+            cmd.push((MoveAction {
+                entity: *entity,
+                dx,
+                dy,
+            },));
+        }
     }
 }
 
@@ -54,18 +74,27 @@ pub fn move_actions(
     cmd: &mut CommandBuffer,
     world: &mut SubWorld,
     move_action: &MoveAction,
-    #[resource] map: &Map,
     entity: &Entity,
+    #[resource] map: &mut Map,
 ) {
     let mut query = <&mut Body>::query();
 
+    println!("Now moving entity {:?}", move_action.entity);
+
     let body = query.get_mut(world, move_action.entity);
     if let Ok(body) = body {
+        let old_position = body.position();
         let new_position = (body.x + move_action.dx, body.y + move_action.dy);
         if !map.is_blocked(new_position) {
             body.set_position(new_position);
+            // Update map of blocked. It can seem useless but if not for that code,
+            // the next entity might try to also move on the same tile.
+            let old_index = map.index(old_position);
+            let new_index = map.index(new_position);
+            map.blocked[old_index] = false;
+            map.blocked[new_index] = true;
         }
     }
 
-    cmd.remove(entity.clone());
+    cmd.remove(*entity);
 }

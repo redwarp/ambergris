@@ -71,24 +71,26 @@ impl Engine {
 
     pub fn run(&mut self, state: &mut State) {
         let mut schedule = Schedule::builder()
-            .add_system(systems::move_actions_system())
             .add_system(systems::monster_move_system())
+            .flush()
+            .add_system(systems::move_actions_system())
+            .flush()
             .add_system(systems::update_map_and_position_system())
             .build();
 
         let mut previous_position = state.resources.get_or_default::<PlayerInfo>().position;
 
         while !self.root.window_closed() {
-            let previous_state = state.run_state.clone();
+            let previous_state = state.resources.get_or_insert(RunState::Init).clone();
             let (_mouse, key) = check_for_event();
-            let new_run_state = match state.run_state {
+            let new_run_state = match previous_state {
                 RunState::Init => {
                     schedule.execute(&mut state.world, &mut state.resources);
                     RunState::WaitForInput
                 }
                 RunState::PlayerTurn => {
                     schedule.execute(&mut state.world, &mut state.resources);
-                    RunState::WaitForInput
+                    RunState::AiTurn
                 }
                 RunState::AiTurn => {
                     schedule.execute(&mut state.world, &mut state.resources);
@@ -98,7 +100,7 @@ impl Engine {
 
                 RunState::Exit => break,
             };
-            state.run_state = new_run_state;
+            state.resources.insert(new_run_state);
             if previous_state == RunState::WaitForInput {
                 // If the previous state was "waiting for input, no need to redraw."
                 continue;
