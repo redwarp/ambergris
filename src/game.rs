@@ -31,11 +31,11 @@ impl State {
         let map = self.resources.get::<Map>().unwrap();
 
         if !map.is_blocked(new_x, new_y, &self.world) {
-            let body = <&mut Body>::query()
-                .get_mut(&mut self.world, self.player_entity)
-                .unwrap();
-            body.x = new_x;
-            body.y = new_y;
+            self.world.push((MoveAction {
+                dx,
+                dy,
+                entity: self.player_entity,
+            },));
         }
         drop(map);
         self.resources.insert(PlayerInfo {
@@ -44,6 +44,7 @@ impl State {
     }
 }
 
+#[derive(PartialEq, Clone)]
 pub enum RunState {
     WaitForInput,
     PlayerTurn,

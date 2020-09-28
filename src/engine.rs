@@ -13,7 +13,6 @@ use input::KeyCode;
 use input::Mouse;
 use legion::IntoQuery;
 use legion::Schedule;
-use legion::World;
 use tcod::console::{blit, BackgroundFlag, Console, FontLayout, FontType, Offscreen, Root};
 use tcod::map::FovAlgorithm;
 use tcod::map::Map as FovMap;
@@ -72,12 +71,13 @@ impl Engine {
 
     pub fn run(&mut self, state: &mut State) {
         let mut schedule = Schedule::builder()
-            .add_system(systems::new_turn_system())
+            .add_system(systems::move_actions_system())
             .add_system(systems::monster_move_system())
             .build();
 
         while !self.root.window_closed() {
             let previous_position = state.resources.get_or_default::<PlayerInfo>().position;
+            let previous_state = state.run_state.clone();
             let (_mouse, key) = check_for_event();
             let new_run_state = match state.run_state {
                 RunState::Exit => break,
@@ -92,6 +92,10 @@ impl Engine {
                 RunState::WaitForInput => self.consume_key(state, key),
             };
             state.run_state = new_run_state;
+            if previous_state == RunState::WaitForInput {
+                // If the previous state was "waiting for input, no need to redraw."
+                continue;
+            }
 
             self.root.clear();
 
@@ -131,10 +135,12 @@ impl Engine {
             }
         }
 
-        for y in 0..map.height {
-            for x in 0..map.width {
+        let map_width = map.width;
+        let map_height = map.height;
+        for y in 0..map_height {
+            for x in 0..map_width {
                 let visible = self.fov.is_in_fov(x, y);
-                let wall = map.tiles[x as usize][y as usize].block_sight;
+                let wall = map.tiles[x as usize + y as usize * map_width as usize].block_sight;
                 let color = match (visible, wall) {
                     (false, true) => COLOR_DARK_WALL,
                     (false, false) => COLOR_DARK_GROUND,
@@ -142,7 +148,8 @@ impl Engine {
                     (true, false) => COLOR_LIGHT_GROUND,
                 };
 
-                let explored = &mut map.tiles[x as usize][y as usize].explored;
+                let explored =
+                    &mut map.explored_tiles[x as usize + y as usize * map_width as usize];
                 if visible {
                     *explored = true;
                 }
@@ -157,7 +164,7 @@ impl Engine {
         blit(
             &self.console,
             (0, 0),
-            (map.width, map.height),
+            (map_width, map_height),
             &mut self.root,
             (0, 0),
             1.0,
@@ -208,6 +215,13 @@ impl Engine {
             }
             (
                 Key {
+                    code: KeyCode::Spacebar,
+                    ..
+                },
+                _,
+            ) => RunState::PlayerTurn,
+            (
+                Key {
                     code: KeyCode::Escape,
                     ..
                 },
@@ -226,8 +240,8 @@ fn make_fov(map: &Map) -> FovMap {
             fov.set(
                 x,
                 y,
-                !map.tiles[x as usize][y as usize].block_sight,
-                !map.tiles[x as usize][y as usize].blocked,
+                !map.tiles[x as usize + y as usize * map.width as usize].block_sight,
+                !map.tiles[x as usize + y as usize * map.width as usize].blocking,
             )
         }
     }

@@ -1,4 +1,5 @@
 use crate::game::{Ai, Position};
+use legion::Entity;
 use tcod::colors::Color;
 
 pub struct Body {
@@ -24,4 +25,10 @@ pub struct Player;
 
 pub struct Monster {
     pub ai: Ai,
+}
+
+pub struct MoveAction {
+    pub entity: Entity,
+    pub dx: i32,
+    pub dy: i32,
 }

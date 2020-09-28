@@ -14,25 +14,22 @@ const MAX_ROOM_MONSTERS: i32 = 3;
 
 #[derive(Clone)]
 pub struct Tile {
-    pub blocked: bool,
+    pub blocking: bool,
     pub block_sight: bool,
-    pub explored: bool,
 }
 
 impl Tile {
     pub fn empty() -> Self {
         Tile {
-            blocked: false,
+            blocking: false,
             block_sight: false,
-            explored: false,
         }
     }
 
     pub fn wall() -> Self {
         Tile {
-            blocked: true,
+            blocking: true,
             block_sight: true,
-            explored: false,
         }
     }
 }
@@ -71,12 +68,13 @@ impl Rect {
 pub struct Map {
     pub width: i32,
     pub height: i32,
-    pub tiles: Vec<Vec<Tile>>,
+    pub tiles: Vec<Tile>,
+    pub explored_tiles: Vec<bool>,
 }
 
 impl Map {
     pub fn is_blocked(&self, x: i32, y: i32, world: &World) -> bool {
-        if self.tiles[x as usize][y as usize].blocked {
+        if self.tiles[x as usize + y as usize * self.width as usize].blocking {
             return true;
         }
         let mut query = <&Body>::query();
@@ -87,10 +85,12 @@ impl Map {
 }
 
 pub fn make_map(world: &mut World, rng: &mut StdRng) -> Map {
+    let map_size = MAP_HEIGHT as usize * MAP_WIDTH as usize;
     let mut map = Map {
         width: MAP_WIDTH,
         height: MAP_HEIGHT,
-        tiles: vec![vec![Tile::wall(); MAP_HEIGHT as usize]; MAP_WIDTH as usize],
+        tiles: vec![Tile::wall(); map_size],
+        explored_tiles: vec![false; map_size],
     };
 
     let mut rooms: Vec<Rect> = vec![];
@@ -139,19 +139,19 @@ pub fn make_map(world: &mut World, rng: &mut StdRng) -> Map {
 fn create_room(room: &Rect, map: &mut Map) {
     for x in (room.x1 + 1)..room.x2 {
         for y in (room.y1 + 1)..room.y2 {
-            map.tiles[x as usize][y as usize] = Tile::empty();
+            map.tiles[x as usize + y as usize * map.width as usize] = Tile::empty();
         }
     }
 }
 
 fn create_horizontal_tunnel(x1: i32, x2: i32, y: i32, map: &mut Map) {
     for x in x1.min(x2)..(x1.max(x2) + 1) {
-        map.tiles[x as usize][y as usize] = Tile::empty();
+        map.tiles[x as usize + y as usize * map.width as usize] = Tile::empty();
     }
 }
 fn create_vertical_tunnel(y1: i32, y2: i32, x: i32, map: &mut Map) {
     for y in y1.min(y2)..(y1.max(y2) + 1) {
-        map.tiles[x as usize][y as usize] = Tile::empty();
+        map.tiles[x as usize + y as usize * map.width as usize] = Tile::empty();
     }
 }
 
