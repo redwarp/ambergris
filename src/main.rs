@@ -1,6 +1,6 @@
-use crate::components::*;
 use crate::engine::Engine;
 use crate::resources::PlayerInfo;
+use crate::{components::*, game::State};
 use game::RunState;
 use legion::{Resources, World};
 use rand::rngs::StdRng;
@@ -18,6 +18,7 @@ fn main() {
 
     let mut rng = StdRng::seed_from_u64(42);
     let mut world = World::default();
+    let mut resources = Resources::default();
     let player_entity = world.push((
         Player,
         Body {
@@ -30,10 +31,10 @@ fn main() {
         },
     ));
     let map = crate::map::make_map(&mut world, &mut rng);
-    let mut state = crate::game::State {
+    resources.insert(map);
+    let mut state = State {
         world,
-        map,
-        resources: Resources::default(),
+        resources,
         run_state: RunState::Running,
         player_entity,
     };

@@ -8,7 +8,6 @@ use legion::World;
 
 pub struct State {
     pub world: World,
-    pub map: Map,
     pub resources: Resources,
     pub run_state: RunState,
     pub player_entity: Entity,
@@ -29,14 +28,16 @@ impl State {
             .unwrap();
 
         let (new_x, new_y) = (body.x + dx, body.y + dy);
+        let map = self.resources.get::<Map>().unwrap();
 
-        if !self.map.is_blocked(new_x, new_y, &self.world) {
+        if !map.is_blocked(new_x, new_y, &self.world) {
             let body = <&mut Body>::query()
                 .get_mut(&mut self.world, self.player_entity)
                 .unwrap();
             body.x = new_x;
             body.y = new_y;
         }
+        drop(map);
         self.resources.insert(PlayerInfo {
             position: (new_x, new_y),
         })

@@ -10,6 +10,7 @@ use input::KeyCode;
 use input::Mouse;
 use legion::IntoQuery;
 use legion::Schedule;
+use legion::World;
 use tcod::console::{blit, BackgroundFlag, Console, FontLayout, FontType, Offscreen, Root};
 use tcod::map::FovAlgorithm;
 use tcod::map::Map as FovMap;
@@ -106,10 +107,10 @@ impl Engine {
     }
 
     fn render_map(&mut self, state: &mut State, fov_recompute: bool) {
-        let map = &mut state.map;
+        let mut map = state.resources.get_mut::<Map>().unwrap();
         if self.console.width() != map.width || self.console.height() != map.height {
             self.console = Offscreen::new(map.width, map.height);
-            self.fov = make_fov(map);
+            self.fov = make_fov(&map);
         }
 
         if fov_recompute {
