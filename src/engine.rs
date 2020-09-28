@@ -1,8 +1,11 @@
-use crate::game::{RunState, State};
 use crate::systems;
 use crate::{
     components::{Body, Player},
     map::Map,
+};
+use crate::{
+    game::{RunState, State},
+    resources::PlayerInfo,
 };
 use input::Event;
 use input::Key;
@@ -74,19 +77,26 @@ impl Engine {
             .build();
 
         while !self.root.window_closed() {
+            let previous_position = state.resources.get_or_default::<PlayerInfo>().position;
             let (_mouse, key) = check_for_event();
-            state.run_state = self.consume_key(state, key);
-            match state.run_state {
+            let new_run_state = match state.run_state {
                 RunState::Exit => break,
-                RunState::Running => {
+                RunState::PlayerTurn => {
                     schedule.execute(&mut state.world, &mut state.resources);
+                    RunState::WaitForInput
                 }
-                RunState::Paused => {}
-            }
+                RunState::AiTurn => {
+                    schedule.execute(&mut state.world, &mut state.resources);
+                    RunState::WaitForInput
+                }
+                RunState::WaitForInput => self.consume_key(state, key),
+            };
+            state.run_state = new_run_state;
 
             self.root.clear();
 
-            self.render_all(state, true);
+            let updated_position = state.resources.get_or_default::<PlayerInfo>().position;
+            self.render_all(state, previous_position == updated_position);
 
             self.root.flush();
         }
@@ -164,7 +174,7 @@ impl Engine {
                 _,
             ) => {
                 state.move_player(0, -1);
-                RunState::Running
+                RunState::PlayerTurn
             }
             (
                 Key {
@@ -174,7 +184,7 @@ impl Engine {
                 _,
             ) => {
                 state.move_player(0, 1);
-                RunState::Running
+                RunState::PlayerTurn
             }
             (
                 Key {
@@ -184,7 +194,7 @@ impl Engine {
                 _,
             ) => {
                 state.move_player(-1, 0);
-                RunState::Running
+                RunState::PlayerTurn
             }
             (
                 Key {
@@ -194,7 +204,7 @@ impl Engine {
                 _,
             ) => {
                 state.move_player(1, 0);
-                RunState::Running
+                RunState::PlayerTurn
             }
             (
                 Key {
@@ -203,7 +213,7 @@ impl Engine {
                 },
                 _,
             ) => RunState::Exit,
-            _ => RunState::Paused,
+            _ => RunState::WaitForInput,
         }
     }
 }

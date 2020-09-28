@@ -45,7 +45,8 @@ impl State {
 }
 
 pub enum RunState {
-    Paused,
-    Running,
+    WaitForInput,
+    PlayerTurn,
+    AiTurn,
     Exit,
 }
