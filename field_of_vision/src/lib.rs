@@ -1,18 +1,22 @@
+use crate::bresenham::Bresenham;
+use std::fmt::{Debug, Display};
+mod bresenham;
+
 /// Using https://sites.google.com/site/jicenospam/visibilitydetermination
-/// see http://www.roguebasin.com/index.php?title=Comparative_study_of_field_of_view_algorithms_for_2D_grid_based_worlds
+/// See http://www.roguebasin.com/index.php?title=Comparative_study_of_field_of_view_algorithms_for_2D_grid_based_worlds
 pub struct FovMap {
     /// Vector to store the transparent tiles.
     transparent: Vec<bool>,
     /// Vector to store the computed field of vision.
     vision: Vec<bool>,
     /// The width of the map
-    width: i32,
+    width: isize,
     /// The height of the map
-    height: i32,
+    height: isize,
 }
 
 impl FovMap {
-    pub fn new(width: i32, height: i32) -> Self {
+    pub fn new(width: isize, height: isize) -> Self {
         if width <= 0 && height <= 0 {
             panic!(format!(
                 "Width and height should be > 0, got ({},{})",
@@ -28,18 +32,18 @@ impl FovMap {
     }
 
     /// Returns the dimension of the map.
-    pub fn size(&self) -> (i32, i32) {
+    pub fn size(&self) -> (isize, isize) {
         (self.width, self.height)
     }
 
     /// Flag a tile as transparent or visible.
-    pub fn set_transparent(&mut self, x: i32, y: i32, is_transparent: bool) {
+    pub fn set_transparent(&mut self, x: isize, y: isize, is_transparent: bool) {
         let index = self.index(x, y);
         self.transparent[index] = is_transparent;
     }
 
     /// Check whether a tile is transparent.
-    pub fn is_transparent(&self, x: i32, y: i32) -> bool {
+    pub fn is_transparent(&self, x: isize, y: isize) -> bool {
         let index = self.index(x, y);
         self.transparent[index]
     }
@@ -51,7 +55,7 @@ impl FovMap {
     /// * `x` - The x coordinate where the field of vision will be centered.
     /// * `y` - The x coordinate where the field of vision will be centered.
     /// * `radius` - How far the eye can see, in squares.
-    pub fn calculate_fov(&mut self, x: i32, y: i32, radius: i32) {
+    pub fn calculate_fov(&mut self, x: isize, y: isize, radius: isize) {
         self.check_in_bounds(x, y);
         for see in self.vision.iter_mut() {
             *see = false;
@@ -83,11 +87,12 @@ impl FovMap {
             extremities.push((maxx, y));
         }
 
-        dbg!(&extremities);
-        dbg!(&extremities.len());
+        for destination in extremities {
+            self.cast_ray((x, y), destination, radius);
+        }
     }
 
-    fn check_in_bounds(&self, x: i32, y: i32) {
+    fn check_in_bounds(&self, x: isize, y: isize) {
         if x < 0 || y < 0 || x >= self.width || y >= self.height {
             panic!(format!(
                 "(x, y) should be between (0,0) and ({}, {}), got ({}, {})",
@@ -96,10 +101,57 @@ impl FovMap {
         }
     }
 
-    fn index(&self, x: i32, y: i32) -> usize {
+    fn index(&self, x: isize, y: isize) -> usize {
         self.check_in_bounds(x, y);
 
         (x + y * self.width) as usize
+    }
+
+    fn cast_ray(&mut self, origin: (isize, isize), destination: (isize, isize), radius: isize) {
+        let (origin_x, origin_y) = origin;
+        println!("Casting ray from {:?} to {:?}", origin, destination);
+        let bresenham = Bresenham::new(origin, destination);
+        for (x, y) in bresenham {
+            let distance = ((x - origin_x).pow(2) as f32 + (y - origin_y).pow(2) as f32).sqrt();
+            if distance <= radius as f32 {
+                let index = self.index(x, y);
+                self.vision[index] = true;
+            }
+
+            if !self.is_transparent(x, y) {
+                return;
+            }
+        }
+    }
+}
+
+impl Debug for FovMap {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut display_string = String::from("+");
+        display_string.push_str("-".repeat(self.width as usize).as_str());
+        display_string.push_str("+\n");
+        for index in 0..self.vision.len() {
+            if index % self.width as usize == 0 {
+                display_string.push('|');
+            }
+
+            let tile = match (self.transparent[index], self.vision[index]) {
+                (true, true) => ' ',
+                (false, true) => '□',
+                _ => '?',
+            };
+            display_string.push(tile);
+            if index > 0 && (index + 1) % self.width as usize == 0 {
+                display_string.push_str("|\n");
+            }
+        }
+        display_string.truncate(display_string.len() - 1);
+        display_string.push('\n');
+        display_string.push('+');
+        display_string.push_str("-".repeat(self.width as usize).as_str());
+        display_string.push('+');
+
+        write!(f, "{}", display_string)
     }
 }
 
@@ -145,7 +197,15 @@ mod test {
 
     #[test]
     fn fov() {
-        let mut fov = FovMap::new(3, 3);
-        fov.calculate_fov(1, 1, 1);
+        let mut fov = FovMap::new(10, 10);
+        for x in 1..10 {
+            fov.set_transparent(x, 3, false);
+        }
+        for y in 0..10 {
+            fov.set_transparent(9, y, false);
+        }
+        fov.calculate_fov(0, 5, 10);
+
+        println!("{:?}", fov);
     }
 }
