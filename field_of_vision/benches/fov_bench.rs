@@ -1,4 +1,4 @@
-use criterion::{black_box, criterion_group, criterion_main, Criterion};
+use criterion::{criterion_group, criterion_main, Criterion};
 use field_of_vision::FovMap;
 
 pub fn fov_benchmark(c: &mut Criterion) {
