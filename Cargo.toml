@@ -11,3 +11,7 @@ readme = "README.md"
 tcod = { version = "0.15.0", features = ["serialization"] }
 rand = "0.7.3"
 legion = "0.3.0"
+field_of_vision = { path = "field_of_vision" }
+
+[workspace]
+members = ["field_of_vision"]

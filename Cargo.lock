@@ -4,6 +4,7 @@
 name = "ambergris"
 version = "0.1.0"
 dependencies = [
+ "field_of_vision",
  "legion",
  "rand",
  "tcod",
@@ -41,6 +42,12 @@ name = "bitflags"
 version = "1.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cf1de2fe8c75bc145a2f577add951f8134889b4795d47466a54a5c846d691693"
+
+[[package]]
+name = "bresenham"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bfc1116225f66d2ea341a26503f83a6b1205070a6f7199ce1f1550ead91f6fd7"
 
 [[package]]
 name = "cc"
@@ -140,6 +147,13 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6ca8b296792113e1500fd935ae487be6e00ce318952a6880555554824d6ebf38"
 dependencies = [
  "serde",
+]
+
+[[package]]
+name = "field_of_vision"
+version = "0.1.0"
+dependencies = [
+ "bresenham",
 ]
 
 [[package]]

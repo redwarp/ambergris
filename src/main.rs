@@ -4,7 +4,6 @@ use crate::{components::*, game::State};
 use legion::{Resources, World};
 use rand::rngs::StdRng;
 use rand::SeedableRng;
-
 mod components;
 mod engine;
 mod game;

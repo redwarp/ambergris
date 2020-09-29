@@ -1,0 +1,9 @@
+[package]
+name = "field_of_vision"
+version = "0.1.0"
+authors = ["Benoit Vermont <bvermont@yelp.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[dependencies]
+bresenham = "0.1.1"
