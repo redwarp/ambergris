@@ -13,6 +13,8 @@ pub struct FovMap {
     width: isize,
     /// The height of the map
     height: isize,
+    /// The last position where the field of view was calculated. If never calculated, initialized to (-1, -1).
+    last_origin: (isize, isize),
 }
 
 impl FovMap {
@@ -28,6 +30,7 @@ impl FovMap {
             vision: vec![false; (width * height) as usize],
             width,
             height,
+            last_origin: (-1, -1),
         }
     }
 
@@ -56,14 +59,19 @@ impl FovMap {
     /// * `y` - The x coordinate where the field of vision will be centered.
     /// * `radius` - How far the eye can see, in squares.
     pub fn calculate_fov(&mut self, x: isize, y: isize, radius: isize) {
-        self.check_in_bounds(x, y);
+        let radius_square = radius.pow(2);
+        self.assert_in_bounds(x, y);
+        // Reset seen to false.
         for see in self.vision.iter_mut() {
             *see = false;
         }
+        self.last_origin = (x, y);
+
+        // Self position is always visible.
+        let index = self.index(x, y);
+        self.vision[index] = true;
 
         if radius < 1 {
-            let index = self.index(x, y);
-            self.vision[index] = true;
             return;
         }
 
@@ -88,12 +96,17 @@ impl FovMap {
         }
 
         for destination in extremities {
-            self.cast_ray((x, y), destination, radius);
+            self.cast_ray_and_mark_visible((x, y), destination, radius_square);
         }
+
+        self.post_process_vision(x + 1, y + 1, maxx, maxy, -1, -1);
+        self.post_process_vision(minx, y + 1, x - 1, maxy, 1, -1);
+        self.post_process_vision(minx, miny, x - 1, y - 1, 1, 1);
+        self.post_process_vision(x + 1, miny, maxx, y - 1, -1, 1);
     }
 
-    fn check_in_bounds(&self, x: isize, y: isize) {
-        if x < 0 || y < 0 || x >= self.width || y >= self.height {
+    fn assert_in_bounds(&self, x: isize, y: isize) {
+        if self.is_bounded(x, y) {
             panic!(format!(
                 "(x, y) should be between (0,0) and ({}, {}), got ({}, {})",
                 self.width, self.height, x, y
@@ -101,19 +114,29 @@ impl FovMap {
         }
     }
 
+    fn is_bounded(&self, x: isize, y: isize) -> bool {
+        x < 0 || y < 0 || x >= self.width || y >= self.height
+    }
+
     fn index(&self, x: isize, y: isize) -> usize {
-        self.check_in_bounds(x, y);
+        self.assert_in_bounds(x, y);
 
         (x + y * self.width) as usize
     }
 
-    fn cast_ray(&mut self, origin: (isize, isize), destination: (isize, isize), radius: isize) {
+    fn cast_ray_and_mark_visible(
+        &mut self,
+        origin: (isize, isize),
+        destination: (isize, isize),
+        radius_square: isize,
+    ) {
         let (origin_x, origin_y) = origin;
         println!("Casting ray from {:?} to {:?}", origin, destination);
-        let bresenham = Bresenham::new(origin, destination);
+        let bresenham = Bresenham::new(origin, destination).skip(1);
         for (x, y) in bresenham {
-            let distance = ((x - origin_x).pow(2) as f32 + (y - origin_y).pow(2) as f32).sqrt();
-            if distance <= radius as f32 {
+            let distance = (x - origin_x).pow(2) + (y - origin_y).pow(2);
+            // If we are within radius, or if we ignore radius whatsoever.
+            if distance <= radius_square || radius_square == 0 {
                 let index = self.index(x, y);
                 self.vision[index] = true;
             }
@@ -123,10 +146,46 @@ impl FovMap {
             }
         }
     }
+
+    fn post_process_vision(
+        &mut self,
+        minx: isize,
+        miny: isize,
+        maxx: isize,
+        maxy: isize,
+        dx: isize,
+        dy: isize,
+    ) {
+        for x in minx..=maxx {
+            for y in miny..=maxy {
+                let index = self.index(x, y);
+                if !self.transparent[index] && !self.vision[index] {
+                    // We check for walls that are not in vision only.
+                    let neighboor_x = x + dx;
+                    let neighboor_y = y + dy;
+
+                    let index_0 = self.index(neighboor_x, y);
+                    let index_1 = self.index(x, neighboor_y);
+
+                    if (self.transparent[index_0] && self.vision[index_0])
+                        || (self.transparent[index_1] && self.vision[index_1])
+                    {
+                        self.vision[index] = true;
+                    }
+                }
+            }
+        }
+    }
 }
 
 impl Debug for FovMap {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let last_origin_index = if self.last_origin.0 >= 0 && self.last_origin.1 >= 0 {
+            Some(self.index(self.last_origin.0, self.last_origin.1))
+        } else {
+            None
+        };
+
         let mut display_string = String::from("+");
         display_string.push_str("-".repeat(self.width as usize).as_str());
         display_string.push_str("+\n");
@@ -135,9 +194,15 @@ impl Debug for FovMap {
                 display_string.push('|');
             }
 
-            let tile = match (self.transparent[index], self.vision[index]) {
-                (true, true) => ' ',
-                (false, true) => '□',
+            let is_last_origin = if let Some(last_origin_index) = last_origin_index {
+                last_origin_index == index
+            } else {
+                false
+            };
+            let tile = match (is_last_origin, self.transparent[index], self.vision[index]) {
+                (true, _, _) => '*',
+                (_, true, true) => ' ',
+                (_, false, true) => '□',
                 _ => '?',
             };
             display_string.push(tile);
@@ -192,7 +257,7 @@ mod test {
     #[should_panic(expected = "(x, y) should be between (0,0) and (10, 10), got (-10, 15)")]
     fn check_in_bounds_out_of_bounds_panic() {
         let fov = FovMap::new(10, 10);
-        fov.check_in_bounds(-10, 15);
+        fov.assert_in_bounds(-10, 15);
     }
 
     #[test]
@@ -204,7 +269,7 @@ mod test {
         for y in 0..10 {
             fov.set_transparent(9, y, false);
         }
-        fov.calculate_fov(0, 5, 10);
+        fov.calculate_fov(3, 2, 10);
 
         println!("{:?}", fov);
     }
