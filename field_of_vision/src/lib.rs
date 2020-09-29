@@ -131,7 +131,6 @@ impl FovMap {
         radius_square: isize,
     ) {
         let (origin_x, origin_y) = origin;
-        println!("Casting ray from {:?} to {:?}", origin, destination);
         let bresenham = Bresenham::new(origin, destination).skip(1);
         for (x, y) in bresenham {
             let distance = (x - origin_x).pow(2) + (y - origin_y).pow(2);
