@@ -139,6 +139,8 @@ impl Bresenham {
     }
 }
 
+impl ExactSizeIterator for Bresenham {}
+
 impl Iterator for Bresenham {
     type Item = Point;
 
@@ -168,6 +170,11 @@ impl Iterator for Bresenham {
 
         Some(self.octant.from_octant0(p))
     }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        let len = (self.dx + 1) as usize;
+        (len, Some(len))
+    }
 }
 
 #[cfg(test)]
@@ -178,38 +185,46 @@ mod tests {
     #[test]
     fn test_wp_example() {
         let bi = Bresenham::new((0, 1), (6, 4));
+        let len = bi.len();
         let res: Vec<_> = bi.collect();
 
         assert_eq!(
             res,
             [(0, 1), (1, 1), (2, 2), (3, 2), (4, 3), (5, 3), (6, 4)]
-        )
+        );
+        assert_eq!(len, 7);
     }
 
     #[test]
     fn test_inverse_wp() {
         let bi = Bresenham::new((6, 4), (0, 1));
+        let len = bi.len();
         let res: Vec<_> = bi.collect();
 
         assert_eq!(
             res,
             [(6, 4), (5, 4), (4, 3), (3, 3), (2, 2), (1, 2), (0, 1)]
-        )
+        );
+        assert_eq!(len, 7);
     }
 
     #[test]
     fn test_straight_hline() {
         let bi = Bresenham::new((2, 3), (5, 3));
+        let len = bi.len();
         let res: Vec<_> = bi.collect();
 
         assert_eq!(res, [(2, 3), (3, 3), (4, 3), (5, 3)]);
+        assert_eq!(len, 4);
     }
 
     #[test]
     fn test_straight_vline() {
         let bi = Bresenham::new((2, 3), (2, 6));
+        let len = bi.len();
         let res: Vec<_> = bi.collect();
 
         assert_eq!(res, [(2, 3), (2, 4), (2, 5), (2, 6)]);
+        assert_eq!(len, 4);
     }
 }

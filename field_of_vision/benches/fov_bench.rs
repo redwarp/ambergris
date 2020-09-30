@@ -1,5 +1,6 @@
 use criterion::{criterion_group, criterion_main, Criterion};
 use field_of_vision::FovMap;
+use field_of_vision::SampleMap;
 use rand::{rngs::StdRng, Rng, SeedableRng};
 
 const WIDTH: isize = 45;
@@ -27,6 +28,28 @@ pub fn fov_benchmark_random_walls(c: &mut Criterion) {
     fov.set_transparent(POSITION_X, POSITION_Y, true);
 
     c.bench_function("fov_benchmark_random_walls", |bencher| {
+        bencher.iter(|| fov.calculate_fov(POSITION_X, POSITION_Y, 24));
+    });
+}
+
+pub fn vec_fov_benchmark_no_walls(c: &mut Criterion) {
+    let mut fov = SampleMap::new(WIDTH, HEIGHT);
+
+    c.bench_function("vec_fov_benchmark_no_walls", |bencher| {
+        bencher.iter(|| fov.calculate_fov(POSITION_X, POSITION_Y, 24));
+    });
+}
+
+pub fn vec_fov_benchmark_random_walls(c: &mut Criterion) {
+    let mut fov = SampleMap::new(WIDTH, HEIGHT);
+    let mut rng = StdRng::seed_from_u64(42);
+    for _ in 0..RANDOM_WALLS {
+        let (x, y) = (rng.gen_range(0, WIDTH), rng.gen_range(0, HEIGHT));
+        fov.set_transparent(x, y, false);
+    }
+    fov.set_transparent(POSITION_X, POSITION_Y, true);
+
+    c.bench_function("vec_fov_benchmark_random_walls", |bencher| {
         bencher.iter(|| fov.calculate_fov(POSITION_X, POSITION_Y, 24));
     });
 }
@@ -74,6 +97,8 @@ criterion_group!(
     benches,
     fov_benchmark_no_walls,
     fov_benchmark_random_walls,
+    vec_fov_benchmark_no_walls,
+    vec_fov_benchmark_random_walls,
     tcod_benchmark_no_walls,
     tcod_benchmark_random_walls
 );
