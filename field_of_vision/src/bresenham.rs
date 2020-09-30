@@ -13,8 +13,8 @@
 //! Example:
 //!
 //! ```rust
-//! extern crate bresenham;
-//! use bresenham::Bresenham;
+//! mod bresenham;
+//! use crate::bresenham::Bresenham;
 //!
 //! fn main() {
 //!     for (x, y) in Bresenham::new((0, 1), (6, 4)) {
