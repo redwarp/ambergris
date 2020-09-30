@@ -11,10 +11,13 @@ env:
 
 jobs:
   build:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v2
+      - name: Install dependencies
+        run: |
+          sudo apt-get install gcc g++ make libsdl2-dev
       - name: Build
         run: cargo build --verbose --all
       - name: Run tests
