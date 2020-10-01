@@ -278,17 +278,16 @@ pub trait Map {
     fn dimensions(&self) -> (isize, isize);
     fn is_transparent(&self, x: isize, y: isize) -> bool;
 
-    fn field_of_view(&mut self, x: isize, y: isize, radius: isize) -> HashSet<(isize, isize)> {
+    fn field_of_view(&mut self, x: isize, y: isize, radius: isize) -> Vec<(isize, isize)> {
         let radius_square = radius.pow(2);
         self.assert_in_bounds(x, y);
 
-        let mut visibles: HashSet<(isize, isize)> =
-            HashSet::with_capacity((4 * radius * radius) as usize);
+        let mut visibles: Vec<(isize, isize)> = Vec::with_capacity((4 * radius * radius) as usize);
 
         // let mut visibles = Vec::with_capacity((4 * radius * radius) as usize);
 
         // Self position is always visible.
-        visibles.insert((x, y));
+        visibles.push((x, y));
 
         if radius < 1 {
             return visibles;
@@ -317,13 +316,16 @@ pub trait Map {
         }
 
         for destination in extremities {
-            visibles.union(&mut self.cast_ray((x, y), destination, radius_square));
+            visibles.append(&mut self.cast_ray((x, y), destination, radius_square));
         }
 
-        visibles.union(&mut self.post_process_vision(&visibles, x + 1, y + 1, maxx, maxy, -1, -1));
-        visibles.union(&mut self.post_process_vision(&visibles, minx, y + 1, x - 1, maxy, 1, -1));
-        visibles.union(&mut self.post_process_vision(&visibles, minx, miny, x - 1, y - 1, 1, 1));
-        visibles.union(&mut self.post_process_vision(&visibles, x + 1, miny, maxx, y - 1, -1, 1));
+        visibles.sort();
+        visibles.dedup();
+
+        visibles.append(&mut self.post_process_vision(&visibles, x + 1, y + 1, maxx, maxy, -1, -1));
+        visibles.append(&mut self.post_process_vision(&visibles, minx, y + 1, x - 1, maxy, 1, -1));
+        visibles.append(&mut self.post_process_vision(&visibles, minx, miny, x - 1, y - 1, 1, 1));
+        visibles.append(&mut self.post_process_vision(&visibles, x + 1, miny, maxx, y - 1, -1, 1));
 
         visibles
     }
@@ -333,15 +335,15 @@ pub trait Map {
         origin: (isize, isize),
         destination: (isize, isize),
         radius_square: isize,
-    ) -> HashSet<(isize, isize)> {
+    ) -> Vec<(isize, isize)> {
         let (origin_x, origin_y) = origin;
         let bresenham = Bresenham::new(origin, destination).skip(1);
-        let mut visibles = HashSet::new();
+        let mut visibles = Vec::new();
         for (x, y) in bresenham {
             let distance = (x - origin_x).pow(2) + (y - origin_y).pow(2);
             // If we are within radius, or if we ignore radius whatsoever.
             if distance <= radius_square || radius_square == 0 {
-                visibles.insert((x, y));
+                visibles.push((x, y));
             }
 
             if !self.is_transparent(x, y) {
@@ -368,15 +370,15 @@ pub trait Map {
 
     fn post_process_vision(
         &mut self,
-        visibles: &HashSet<(isize, isize)>,
+        visibles: &Vec<(isize, isize)>,
         minx: isize,
         miny: isize,
         maxx: isize,
         maxy: isize,
         dx: isize,
         dy: isize,
-    ) -> HashSet<(isize, isize)> {
-        let mut extras = HashSet::new();
+    ) -> Vec<(isize, isize)> {
+        let mut extras = Vec::new();
         for x in minx..=maxx {
             for y in miny..=maxy {
                 if !self.is_transparent(x, y) && !visibles.contains(&(x, y)) {
@@ -388,7 +390,7 @@ pub trait Map {
                         || (self.is_transparent(x, neighboor_y)
                             && visibles.contains(&(x, neighboor_y)))
                     {
-                        extras.insert((x, y));
+                        extras.push((x, y));
                     }
                 }
             }
