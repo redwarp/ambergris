@@ -6,7 +6,6 @@ use std::fmt::Debug;
 
 /// Using https://sites.google.com/site/jicenospam/visibilitydetermination
 /// See http://www.roguebasin.com/index.php?title=Comparative_study_of_field_of_view_algorithms_for_2D_grid_based_worlds
-#[derive(Clone)]
 pub struct FovMap {
     /// Vector to store the transparent tiles.
     transparent: Vec<bool>,
