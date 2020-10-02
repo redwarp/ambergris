@@ -7,6 +7,7 @@ use crate::{
     game::{RunState, State},
     resources::PlayerInfo,
 };
+use field_of_vision::FovMap;
 use input::Event;
 use input::Key;
 use input::KeyCode;
@@ -14,8 +15,6 @@ use input::Mouse;
 use legion::IntoQuery;
 use legion::Schedule;
 use tcod::console::{blit, BackgroundFlag, Console, FontLayout, FontType, Offscreen, Root};
-use tcod::map::FovAlgorithm;
-use tcod::map::Map as FovMap;
 use tcod::{colors::Color, input};
 
 // actual size of the window
@@ -41,9 +40,7 @@ const COLOR_LIGHT_GROUND: Color = Color {
     b: 50,
 };
 
-const FOV_ALGO: FovAlgorithm = FovAlgorithm::Basic;
-const FOV_LIGHT_WALLS: bool = true;
-const TORCH_RADIUS: i32 = 10;
+const TORCH_RADIUS: isize = 10;
 
 pub struct Engine {
     root: Root,
@@ -124,7 +121,7 @@ impl Engine {
 
         let mut query = <&Body>::query();
         for body in query.iter(&state.world) {
-            if self.fov.is_in_fov(body.x, body.y) {
+            if self.fov.is_in_fov(body.x as isize, body.y as isize) {
                 self.root.set_default_foreground(body.color);
                 self.root
                     .put_char(body.x, body.y, body.char, BackgroundFlag::None);
@@ -143,7 +140,7 @@ impl Engine {
             let mut query = <(&Player, &Body)>::query();
             for (_, body) in query.iter(&state.world) {
                 self.fov
-                    .compute_fov(body.x, body.y, TORCH_RADIUS, FOV_LIGHT_WALLS, FOV_ALGO);
+                    .calculate_fov(body.x as isize, body.y as isize, TORCH_RADIUS);
             }
         }
 
@@ -151,7 +148,7 @@ impl Engine {
         let map_height = map.height;
         for y in 0..map_height {
             for x in 0..map_width {
-                let visible = self.fov.is_in_fov(x, y);
+                let visible = self.fov.is_in_fov(x as isize, y as isize);
                 let wall = map.tiles[x as usize + y as usize * map_width as usize].block_sight;
                 let color = match (visible, wall) {
                     (false, true) => COLOR_DARK_WALL,
@@ -245,16 +242,15 @@ impl Engine {
 }
 
 fn make_fov(map: &Map) -> FovMap {
-    let mut fov = FovMap::new(map.width, map.height);
+    let mut fov = FovMap::new(map.width as isize, map.height as isize);
 
     for y in 0..map.height {
         for x in 0..map.width {
-            fov.set(
-                x,
-                y,
+            fov.set_transparent(
+                x as isize,
+                y as isize,
                 !map.tiles[x as usize + y as usize * map.width as usize].block_sight,
-                !map.tiles[x as usize + y as usize * map.width as usize].blocking,
-            )
+            );
         }
     }
 

@@ -40,7 +40,7 @@ impl FovMap {
         (self.width, self.height)
     }
 
-    /// Flag a tile as transparent or visible.
+    /// Flag a tile as transparent.
     pub fn set_transparent(&mut self, x: isize, y: isize, is_transparent: bool) {
         self.assert_in_bounds(x, y);
         let index = self.index(x, y);
@@ -88,19 +88,26 @@ impl FovMap {
             return;
         }
 
+        let origin = (x, y);
         for x in minx..maxx + 1 {
-            self.cast_ray_and_mark_visible((x, y), (x, miny), radius_square);
-            self.cast_ray_and_mark_visible((x, y), (x, maxy), radius_square);
+            self.cast_ray_and_mark_visible(origin, (x, miny), radius_square);
+            self.cast_ray_and_mark_visible(origin, (x, maxy), radius_square);
         }
         for y in miny + 1..maxy {
-            self.cast_ray_and_mark_visible((x, y), (minx, y), radius_square);
-            self.cast_ray_and_mark_visible((x, y), (maxx, y), radius_square);
+            self.cast_ray_and_mark_visible(origin, (minx, y), radius_square);
+            self.cast_ray_and_mark_visible(origin, (maxx, y), radius_square);
         }
 
         self.post_process_vision(x + 1, y + 1, maxx, maxy, -1, -1);
         self.post_process_vision(minx, y + 1, x - 1, maxy, 1, -1);
         self.post_process_vision(minx, miny, x - 1, y - 1, 1, 1);
         self.post_process_vision(x + 1, miny, maxx, y - 1, -1, 1);
+    }
+
+    pub fn is_in_fov(&self, x: isize, y: isize) -> bool {
+        self.assert_in_bounds(x, y);
+        let index = self.index(x, y);
+        self.vision[index]
     }
 
     fn assert_in_bounds(&self, x: isize, y: isize) {
@@ -643,5 +650,7 @@ mod test {
         fov.set_transparent(POSITION_X, POSITION_Y, true);
 
         fov.calculate_fov(POSITION_X, POSITION_Y, RADIUS);
+
+        println!("{:?}", fov);
     }
 }
