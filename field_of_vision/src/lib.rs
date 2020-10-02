@@ -219,61 +219,6 @@ impl Debug for FovMap {
     }
 }
 
-#[cfg(test)]
-mod test {
-    use crate::*;
-
-    #[test]
-    fn size() {
-        let fov = FovMap::new(20, 40);
-
-        assert_eq!((20, 40), fov.size());
-    }
-
-    #[test]
-    fn new_fov_map_all_is_transparent() {
-        let fov = FovMap::new(10, 20);
-        for is_transparent in fov.transparent.iter() {
-            assert!(is_transparent);
-        }
-    }
-
-    #[test]
-    fn set_tranparent() {
-        let mut fov = FovMap::new(10, 20);
-        fov.set_transparent(5, 5, false);
-
-        assert!(!fov.is_transparent(5, 5));
-    }
-
-    #[test]
-    #[should_panic(expected = "Width and height should be > 0, got (0,0)")]
-    fn newfov_size_zero_panic() {
-        FovMap::new(0, 0);
-    }
-
-    #[test]
-    #[should_panic(expected = "(x, y) should be between (0,0) and (10, 10), got (-10, 15)")]
-    fn check_in_bounds_out_of_bounds_panic() {
-        let fov = FovMap::new(10, 10);
-        fov.assert_in_bounds(-10, 15);
-    }
-
-    #[test]
-    fn fov() {
-        let mut fov = FovMap::new(10, 10);
-        for x in 1..10 {
-            fov.set_transparent(x, 3, false);
-        }
-        for y in 0..10 {
-            fov.set_transparent(9, y, false);
-        }
-        fov.calculate_fov(3, 2, 10);
-
-        println!("{:?}", fov);
-    }
-}
-
 pub trait Map {
     fn dimensions(&self) -> (isize, isize);
     fn is_transparent(&self, x: isize, y: isize) -> bool;
@@ -282,15 +227,8 @@ pub trait Map {
         let radius_square = radius.pow(2);
         self.assert_in_bounds(x, y);
 
-        let mut visibles: Vec<(isize, isize)> = Vec::with_capacity((4 * radius * radius) as usize);
-
-        // let mut visibles = Vec::with_capacity((4 * radius * radius) as usize);
-
-        // Self position is always visible.
-        visibles.push((x, y));
-
         if radius < 1 {
-            return visibles;
+            return vec![(x, y)];
         }
 
         let (width, height) = self.dimensions();
@@ -302,55 +240,167 @@ pub trait Map {
 
         if maxx - minx == 0 || maxy - miny == 0 {
             // Well, no area to check.
-            return visibles;
+            return vec![];
         }
+
+        let (sub_width, sub_height) = (maxx - minx + 1, maxy - miny + 1);
+        let (offset_x, offset_y) = (minx, miny);
+        let sub_origin = (x - offset_x, y - offset_y);
+
+        let mut visibles = vec![false; (sub_width * sub_height) as usize];
+        visibles[(x - offset_x + (y - offset_y) * sub_width) as usize];
 
         let mut extremities = Vec::new();
         for x in minx..maxx + 1 {
-            extremities.push((x, miny));
-            extremities.push((x, maxy));
+            extremities.push((x - offset_x, miny - offset_y));
+            extremities.push((x - offset_x, maxy - offset_y));
         }
         for y in miny + 1..maxy {
-            extremities.push((minx, y));
-            extremities.push((maxx, y));
+            extremities.push((minx - offset_x, y - offset_y));
+            extremities.push((maxx - offset_x, y - offset_y));
         }
 
         for destination in extremities {
-            visibles.append(&mut self.cast_ray((x, y), destination, radius_square));
+            self.cast_ray(
+                &mut visibles,
+                sub_width,
+                sub_origin,
+                destination,
+                radius_square,
+                offset_x,
+                offset_y,
+            );
         }
 
-        visibles.sort();
-        visibles.dedup();
+        // SE
+        self.post_process_vision(
+            &mut visibles,
+            sub_width,
+            x - offset_x + 1,
+            y - offset_y + 1,
+            maxx - offset_x,
+            maxy - offset_y,
+            -1,
+            -1,
+            offset_x,
+            offset_y,
+        );
 
-        visibles.append(&mut self.post_process_vision(&visibles, x + 1, y + 1, maxx, maxy, -1, -1));
-        visibles.append(&mut self.post_process_vision(&visibles, minx, y + 1, x - 1, maxy, 1, -1));
-        visibles.append(&mut self.post_process_vision(&visibles, minx, miny, x - 1, y - 1, 1, 1));
-        visibles.append(&mut self.post_process_vision(&visibles, x + 1, miny, maxx, y - 1, -1, 1));
+        // SW
+        self.post_process_vision(
+            &mut visibles,
+            sub_width,
+            minx - offset_x,
+            y - offset_y + 1,
+            x - offset_x - 1,
+            maxy - offset_y,
+            1,
+            -1,
+            offset_x,
+            offset_y,
+        );
+
+        // NW
+        self.post_process_vision(
+            &mut visibles,
+            sub_width,
+            minx - offset_x,
+            miny - offset_y,
+            x - offset_x - 1,
+            y - offset_y - 1,
+            1,
+            1,
+            offset_x,
+            offset_y,
+        );
+
+        // NE
+        self.post_process_vision(
+            &mut visibles,
+            sub_width,
+            x - offset_x + 1,
+            miny - offset_y,
+            maxx - offset_x,
+            y - offset_y - 1,
+            -1,
+            1,
+            offset_x,
+            offset_y,
+        );
 
         visibles
+            .iter()
+            .enumerate()
+            .filter(|&(_index, visible)| *visible)
+            .map(|(index, _)| {
+                (
+                    index as isize % sub_width + offset_x,
+                    index as isize / sub_width + offset_y,
+                )
+            })
+            .collect()
     }
 
     fn cast_ray(
         &self,
+        visibles: &mut Vec<bool>,
+        width: isize,
         origin: (isize, isize),
         destination: (isize, isize),
         radius_square: isize,
-    ) -> Vec<(isize, isize)> {
+        offset_x: isize,
+        offset_y: isize,
+    ) {
         let (origin_x, origin_y) = origin;
         let bresenham = Bresenham::new(origin, destination).skip(1);
-        let mut visibles = Vec::new();
         for (x, y) in bresenham {
             let distance = (x - origin_x).pow(2) + (y - origin_y).pow(2);
             // If we are within radius, or if we ignore radius whatsoever.
             if distance <= radius_square || radius_square == 0 {
-                visibles.push((x, y));
+                visibles[(x + y * width) as usize] = true;
             }
 
-            if !self.is_transparent(x, y) {
-                return visibles;
+            if !self.is_transparent(x + offset_x, y + offset_y) {
+                return;
             }
         }
-        visibles
+    }
+
+    fn post_process_vision(
+        &self,
+        visibles: &mut Vec<bool>,
+        width: isize,
+        minx: isize,
+        miny: isize,
+        maxx: isize,
+        maxy: isize,
+        dx: isize,
+        dy: isize,
+        offset_x: isize,
+        offset_y: isize,
+    ) {
+        for x in minx..=maxx {
+            for y in miny..=maxy {
+                let index = (x + y * width) as usize;
+                let transparent = self.is_transparent(x + offset_x, y + offset_y);
+                if !transparent && !visibles[index] {
+                    // We check for walls that are not in vision only.
+                    let neighboor_x = x + dx;
+                    let neighboor_y = y + dy;
+
+                    let index_0 = (neighboor_x + y * width) as usize;
+                    let index_1 = (x + neighboor_y * width) as usize;
+
+                    if (self.is_transparent(neighboor_x + offset_x, y + offset_y)
+                        && visibles[index_0])
+                        || (self.is_transparent(x + offset_x, neighboor_y + offset_y)
+                            && visibles[index_1])
+                    {
+                        visibles[index] = true;
+                    }
+                }
+            }
+        }
     }
 
     fn assert_in_bounds(&self, x: isize, y: isize) {
@@ -366,36 +416,6 @@ pub trait Map {
     fn is_bounded(&self, x: isize, y: isize) -> bool {
         let (width, height) = self.dimensions();
         x < 0 || y < 0 || x >= width || y >= height
-    }
-
-    fn post_process_vision(
-        &mut self,
-        visibles: &Vec<(isize, isize)>,
-        minx: isize,
-        miny: isize,
-        maxx: isize,
-        maxy: isize,
-        dx: isize,
-        dy: isize,
-    ) -> Vec<(isize, isize)> {
-        let mut extras = Vec::new();
-        for x in minx..=maxx {
-            for y in miny..=maxy {
-                if !self.is_transparent(x, y) && !visibles.contains(&(x, y)) {
-                    // We check for walls that are not in vision only.
-                    let neighboor_x = x + dx;
-                    let neighboor_y = y + dy;
-
-                    if (self.is_transparent(neighboor_x, y) && visibles.contains(&(neighboor_x, y)))
-                        || (self.is_transparent(x, neighboor_y)
-                            && visibles.contains(&(x, neighboor_y)))
-                    {
-                        extras.push((x, y));
-                    }
-                }
-            }
-        }
-        extras
     }
 }
 
@@ -455,5 +475,148 @@ impl SampleMap {
             self.vision[(x + y * self.width) as usize] = true
         }
         self.last_origin = (x, y);
+    }
+}
+
+impl Debug for SampleMap {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let (width, _height) = self.dimensions();
+
+        let last_origin_index = if self.last_origin.0 >= 0 && self.last_origin.1 >= 0 {
+            Some((self.last_origin.0 + self.last_origin.1 * width) as usize)
+        } else {
+            None
+        };
+
+        let mut display_string = String::from("+");
+        display_string.push_str("-".repeat(self.width as usize).as_str());
+        display_string.push_str("+\n");
+        for index in 0..self.vision.len() {
+            if index % self.width as usize == 0 {
+                display_string.push('|');
+            }
+
+            let is_last_origin = if let Some(last_origin_index) = last_origin_index {
+                last_origin_index == index
+            } else {
+                false
+            };
+            let tile = match (is_last_origin, self.transparent[index], self.vision[index]) {
+                (true, _, _) => '*',
+                (_, true, true) => ' ',
+                (_, false, true) => '□',
+                _ => '?',
+            };
+            display_string.push(tile);
+            if index > 0 && (index + 1) % self.width as usize == 0 {
+                display_string.push_str("|\n");
+            }
+        }
+        display_string.truncate(display_string.len() - 1);
+        display_string.push('\n');
+        display_string.push('+');
+        display_string.push_str("-".repeat(self.width as usize).as_str());
+        display_string.push('+');
+
+        write!(f, "{}", display_string)
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use crate::{FovMap, SampleMap};
+    use rand::rngs::StdRng;
+    use rand::Rng;
+    use rand::SeedableRng;
+
+    const WIDTH: isize = 45;
+    const HEIGHT: isize = 45;
+    const POSITION_X: isize = 22;
+    const POSITION_Y: isize = 22;
+    const RADIUS: isize = 24;
+    const RANDOM_WALLS: isize = 10;
+
+    #[test]
+    fn size() {
+        let fov = FovMap::new(20, 40);
+
+        assert_eq!((20, 40), fov.size());
+    }
+
+    #[test]
+    fn new_fov_map_all_is_transparent() {
+        let fov = FovMap::new(10, 20);
+        for is_transparent in fov.transparent.iter() {
+            assert!(is_transparent);
+        }
+    }
+
+    #[test]
+    fn set_tranparent() {
+        let mut fov = FovMap::new(10, 20);
+        fov.set_transparent(5, 5, false);
+
+        assert!(!fov.is_transparent(5, 5));
+    }
+
+    #[test]
+    #[should_panic(expected = "Width and height should be > 0, got (0,0)")]
+    fn newfov_size_zero_panic() {
+        FovMap::new(0, 0);
+    }
+
+    #[test]
+    #[should_panic(expected = "(x, y) should be between (0,0) and (10, 10), got (-10, 15)")]
+    fn check_in_bounds_out_of_bounds_panic() {
+        let fov = FovMap::new(10, 10);
+        fov.assert_in_bounds(-10, 15);
+    }
+
+    #[test]
+    fn fov() {
+        let mut fov = FovMap::new(10, 10);
+        for x in 1..10 {
+            fov.set_transparent(x, 3, false);
+        }
+        for y in 0..10 {
+            fov.set_transparent(9, y, false);
+        }
+        fov.calculate_fov(3, 2, 10);
+
+        println!("{:?}", fov);
+    }
+
+    #[test]
+    fn fov_with_sample_map() {
+        let mut fov = SampleMap::new(10, 10);
+        for x in 1..10 {
+            fov.set_transparent(x, 3, false);
+        }
+        for y in 0..10 {
+            fov.set_transparent(9, y, false);
+        }
+        fov.calculate_fov(3, 2, 10);
+
+        println!("{:?}", fov);
+    }
+
+    #[test]
+    fn fov_to_vector() {
+        let mut fov = SampleMap::new(WIDTH, HEIGHT);
+
+        fov.calculate_fov(POSITION_X, POSITION_Y, RADIUS);
+    }
+
+    #[test]
+    fn fov_with_wall_to_vector() {
+        let mut fov = SampleMap::new(WIDTH, HEIGHT);
+        let mut rng = StdRng::seed_from_u64(42);
+        for _ in 0..RANDOM_WALLS {
+            let (x, y) = (rng.gen_range(0, WIDTH), rng.gen_range(0, HEIGHT));
+            fov.set_transparent(x, y, false);
+        }
+        fov.set_transparent(POSITION_X, POSITION_Y, true);
+
+        fov.calculate_fov(POSITION_X, POSITION_Y, RADIUS);
     }
 }

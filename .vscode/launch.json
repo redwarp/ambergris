@@ -8,7 +8,10 @@
       "name": "(Windows) Launch",
       "type": "cppvsdbg",
       "request": "launch",
-      "program": "${workspaceFolder}/target/debug/ambergris.exe",
+      "program": "${workspaceFolder}/target/debug/ambergris",
+      "windows": {
+        "program": "${workspaceFolder}/target/debug/ambergris.exe"
+      },
       "args": [],
       "stopAtEntry": false,
       "cwd": "${workspaceFolder}",
