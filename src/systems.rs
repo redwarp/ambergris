@@ -42,6 +42,13 @@ pub fn monster_move(
                 dx,
                 dy,
             },));
+        } else {
+            // Attack!
+            let attack_action = AttackAction {
+                attacker_entity: entity.clone(),
+                target_entity: player_info.entity.clone(),
+            };
+            cmd.push((attack_action,));
         }
     }
 }
@@ -97,6 +104,30 @@ pub fn move_actions(
             map.blocked[new_index] = true;
         }
     }
+
+    cmd.remove(*entity);
+}
+
+#[system(for_each)]
+#[read_component(CombatStats)]
+#[read_component(Body)]
+pub fn attack_actions(
+    cmd: &mut CommandBuffer,
+    world: &mut SubWorld,
+    move_action: &AttackAction,
+    entity: &Entity,
+) {
+    let (attacker_body, attacker_stats) = <(&Body, &CombatStats)>::query()
+        .get(world, move_action.attacker_entity)
+        .unwrap();
+    let attacker_name = attacker_body.name.clone();
+
+    let (target_body, target_stats) = <(&Body, &CombatStats)>::query()
+        .get(world, move_action.target_entity)
+        .unwrap();
+    let target_name = target_body.name.clone();
+
+    println!("The {} tries to attack {}", attacker_name, target_name);
 
     cmd.remove(*entity);
 }

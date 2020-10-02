@@ -10,7 +10,7 @@ readme = "README.md"
 [dependencies]
 tcod = { version = "0.15.0", features = ["serialization"] }
 rand = "0.7.3"
-legion = "0.3.0"
+legion = "0.3.1"
 field_of_vision = { path = "field_of_vision" }
 
 [workspace]

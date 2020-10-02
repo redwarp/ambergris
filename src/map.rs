@@ -1,4 +1,7 @@
-use crate::{components::*, game::Ai};
+use crate::{
+    components::*,
+    spawner::{self, MonsterType},
+};
 
 use legion::IntoQuery;
 use legion::World;
@@ -109,9 +112,7 @@ pub fn make_map(world: &mut World, rng: &mut StdRng) -> Map {
         let y = rng.gen_range(0, MAP_HEIGHT - height);
 
         let new_room = Rect::new(x, y, width, height);
-        let failed = rooms
-            .iter()
-            .any(|other| *&new_room.intersects_with(other).clone());
+        let failed = rooms.iter().any(|other| new_room.intersects_with(other));
 
         if !failed {
             create_room(&new_room, &mut map);
@@ -170,26 +171,12 @@ fn place_objects(world: &mut World, rng: &mut StdRng, map: &Map, room: &Rect) {
         let y = rng.gen_range(room.y1 + 1, room.y2);
 
         if !map.is_blocked((x, y)) {
-            let body = if rand::random::<f32>() < 0.8 {
-                Body {
-                    name: "orc".into(),
-                    x,
-                    y,
-                    blocking: true,
-                    char: 'o',
-                    color: tcod::colors::DESATURATED_GREEN,
-                }
+            let monster_type = if rand::random::<f32>() < 0.8 {
+                MonsterType::Orc
             } else {
-                Body {
-                    name: "troll".into(),
-                    x,
-                    y,
-                    blocking: true,
-                    char: 'T',
-                    color: tcod::colors::DARKER_GREEN,
-                }
+                MonsterType::Troll
             };
-            world.push((body, Monster { ai: Ai::Basic }));
+            world.push(spawner::spawn_monster(monster_type, x, y));
         }
     }
 }

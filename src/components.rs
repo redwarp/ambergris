@@ -38,3 +38,15 @@ pub struct MoveAction {
     pub dx: i32,
     pub dy: i32,
 }
+
+pub struct AttackAction {
+    pub attacker_entity: Entity,
+    pub target_entity: Entity,
+}
+
+pub struct CombatStats {
+    pub max_hp: i32,
+    pub hp: i32,
+    pub defense: i32,
+    pub attack: i32,
+}

@@ -16,22 +16,44 @@ pub enum Ai {
 }
 
 impl State {
-    pub fn ai_turn() {}
-
     pub fn move_player(&mut self, dx: i32, dy: i32) {
         let body = <&Body>::query()
-            .get(&mut self.world, self.player_entity)
+            .get(&self.world, self.player_entity)
             .unwrap();
 
         let position = (body.x + dx, body.y + dy);
         let map = self.resources.get::<Map>().unwrap();
 
-        if !map.is_blocked(position) {
-            self.world.push((MoveAction {
-                dx,
-                dy,
-                entity: self.player_entity,
-            },));
+        let mut enemies = <(Entity, &Body, &Monster, &CombatStats)>::query();
+
+        println!("Looking for enemies");
+        let mut attack_action = None;
+        for (entity, body, _, _) in enemies.iter(&self.world) {
+            let body: &Body = body; // That seems to help.
+            if body.position() == position {
+                // We can attack a monster!
+                println!("Let's attack the {}", body.name);
+                attack_action = Some(AttackAction {
+                    attacker_entity: self.player_entity,
+                    target_entity: entity.clone(),
+                });
+                break;
+            }
+        }
+
+        match attack_action {
+            Some(attack_action) => {
+                self.world.push((attack_action,));
+            }
+            None => {
+                if !map.is_blocked(position) {
+                    self.world.push((MoveAction {
+                        dx,
+                        dy,
+                        entity: self.player_entity,
+                    },));
+                };
+            }
         }
     }
 }

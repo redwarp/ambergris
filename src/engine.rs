@@ -68,12 +68,13 @@ impl Engine {
         let mut schedule = Schedule::builder()
             .add_system(systems::monster_move_system())
             .flush()
+            .add_system(systems::attack_actions_system())
             .add_system(systems::move_actions_system())
             .flush()
             .add_system(systems::update_map_and_position_system())
             .build();
 
-        let mut previous_position = state.resources.get_or_default::<PlayerInfo>().position;
+        let mut previous_position = state.resources.get::<PlayerInfo>().unwrap().position;
 
         while !self.root.window_closed() {
             let previous_state = state.resources.get_or_insert(RunState::Init).clone();
@@ -103,7 +104,7 @@ impl Engine {
 
             self.root.clear();
 
-            let updated_position = state.resources.get_or_default::<PlayerInfo>().position;
+            let updated_position = state.resources.get::<PlayerInfo>().unwrap().position;
             self.render_all(state, previous_position != updated_position);
 
             self.root.flush();

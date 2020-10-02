@@ -1,7 +1,8 @@
 use crate::engine::Engine;
+use crate::game::State;
 use crate::map::Map;
 use crate::resources::PlayerInfo;
-use crate::{components::*, game::State};
+
 use field_of_vision::FovMap;
 use legion::{Resources, World};
 use rand::rngs::StdRng;
@@ -11,6 +12,7 @@ mod engine;
 mod game;
 mod map;
 mod resources;
+mod spawner;
 mod systems;
 
 fn main() {
@@ -19,17 +21,7 @@ fn main() {
     let mut rng = StdRng::seed_from_u64(42);
     let mut world = World::default();
     let mut resources = Resources::default();
-    let player_entity = world.push((
-        Player,
-        Body {
-            name: "player".into(),
-            x: 10,
-            y: 10,
-            blocking: true,
-            char: '@',
-            color: tcod::colors::YELLOW,
-        },
-    ));
+    let player_entity = world.push(spawner::spawn_player(-1, -1));
     let map = crate::map::make_map(&mut world, &mut rng);
     let fov = make_fov(&map);
     resources.insert(map);
@@ -39,7 +31,10 @@ fn main() {
         resources,
         player_entity,
     };
-    state.resources.insert(PlayerInfo { position: (0, 0) });
+    state.resources.insert(PlayerInfo {
+        entity: player_entity,
+        position: (-1, -1),
+    });
 
     let mut renderer = Engine::new();
 
