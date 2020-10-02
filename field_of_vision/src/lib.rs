@@ -216,206 +216,6 @@ pub trait Map {
     fn dimensions(&self) -> (isize, isize);
     fn is_transparent(&self, x: isize, y: isize) -> bool;
 
-    fn field_of_view(&mut self, x: isize, y: isize, radius: isize) -> Vec<(isize, isize)> {
-        let radius_square = radius.pow(2);
-        self.assert_in_bounds(x, y);
-
-        if radius < 1 {
-            return vec![(x, y)];
-        }
-
-        let (width, height) = self.dimensions();
-
-        let minx = (x - radius).max(0);
-        let miny = (y - radius).max(0);
-        let maxx = (x + radius).min(width - 1);
-        let maxy = (y + radius).min(height - 1);
-
-        if maxx - minx == 0 || maxy - miny == 0 {
-            // Well, no area to check.
-            return vec![];
-        }
-
-        let (sub_width, sub_height) = (maxx - minx + 1, maxy - miny + 1);
-        let (offset_x, offset_y) = (minx, miny);
-        let sub_origin = (x - offset_x, y - offset_y);
-
-        let mut visibles = vec![false; (sub_width * sub_height) as usize];
-        // Set origin as visible.
-        visibles[(x - offset_x + (y - offset_y) * sub_width) as usize];
-
-        for x in minx..maxx + 1 {
-            self.cast_ray(
-                &mut visibles,
-                sub_width,
-                sub_origin,
-                (x - offset_x, miny - offset_y),
-                radius_square,
-                offset_x,
-                offset_y,
-            );
-            self.cast_ray(
-                &mut visibles,
-                sub_width,
-                sub_origin,
-                (x - offset_x, maxy - offset_y),
-                radius_square,
-                offset_x,
-                offset_y,
-            );
-        }
-        for y in miny + 1..maxy {
-            self.cast_ray(
-                &mut visibles,
-                sub_width,
-                sub_origin,
-                (minx - offset_x, y - offset_y),
-                radius_square,
-                offset_x,
-                offset_y,
-            );
-            self.cast_ray(
-                &mut visibles,
-                sub_width,
-                sub_origin,
-                (maxx - offset_x, y - offset_y),
-                radius_square,
-                offset_x,
-                offset_y,
-            );
-        }
-
-        // SE
-        self.post_process_vision(
-            &mut visibles,
-            sub_width,
-            x - offset_x + 1,
-            y - offset_y + 1,
-            maxx - offset_x,
-            maxy - offset_y,
-            -1,
-            -1,
-            offset_x,
-            offset_y,
-        );
-
-        // SW
-        self.post_process_vision(
-            &mut visibles,
-            sub_width,
-            minx - offset_x,
-            y - offset_y + 1,
-            x - offset_x - 1,
-            maxy - offset_y,
-            1,
-            -1,
-            offset_x,
-            offset_y,
-        );
-
-        // NW
-        self.post_process_vision(
-            &mut visibles,
-            sub_width,
-            minx - offset_x,
-            miny - offset_y,
-            x - offset_x - 1,
-            y - offset_y - 1,
-            1,
-            1,
-            offset_x,
-            offset_y,
-        );
-
-        // NE
-        self.post_process_vision(
-            &mut visibles,
-            sub_width,
-            x - offset_x + 1,
-            miny - offset_y,
-            maxx - offset_x,
-            y - offset_y - 1,
-            -1,
-            1,
-            offset_x,
-            offset_y,
-        );
-
-        visibles
-            .iter()
-            .enumerate()
-            .filter(|&(_index, visible)| *visible)
-            .map(|(index, _)| {
-                (
-                    index as isize % sub_width + offset_x,
-                    index as isize / sub_width + offset_y,
-                )
-            })
-            .collect()
-    }
-
-    fn cast_ray(
-        &self,
-        visibles: &mut Vec<bool>,
-        width: isize,
-        origin: (isize, isize),
-        destination: (isize, isize),
-        radius_square: isize,
-        offset_x: isize,
-        offset_y: isize,
-    ) {
-        let (origin_x, origin_y) = origin;
-        let bresenham = Bresenham::new(origin, destination).skip(1);
-        for (x, y) in bresenham {
-            let distance = (x - origin_x).pow(2) + (y - origin_y).pow(2);
-            // If we are within radius, or if we ignore radius whatsoever.
-            if distance <= radius_square || radius_square == 0 {
-                visibles[(x + y * width) as usize] = true;
-            }
-
-            if !self.is_transparent(x + offset_x, y + offset_y) {
-                return;
-            }
-        }
-    }
-
-    fn post_process_vision(
-        &self,
-        visibles: &mut Vec<bool>,
-        width: isize,
-        minx: isize,
-        miny: isize,
-        maxx: isize,
-        maxy: isize,
-        dx: isize,
-        dy: isize,
-        offset_x: isize,
-        offset_y: isize,
-    ) {
-        for x in minx..=maxx {
-            for y in miny..=maxy {
-                let index = (x + y * width) as usize;
-                let transparent = self.is_transparent(x + offset_x, y + offset_y);
-                if !transparent && !visibles[index] {
-                    // We check for walls that are not in vision only.
-                    let neighboor_x = x + dx;
-                    let neighboor_y = y + dy;
-
-                    let index_0 = (neighboor_x + y * width) as usize;
-                    let index_1 = (x + neighboor_y * width) as usize;
-
-                    if (self.is_transparent(neighboor_x + offset_x, y + offset_y)
-                        && visibles[index_0])
-                        || (self.is_transparent(x + offset_x, neighboor_y + offset_y)
-                            && visibles[index_1])
-                    {
-                        visibles[index] = true;
-                    }
-                }
-            }
-        }
-    }
-
     fn assert_in_bounds(&self, x: isize, y: isize) {
         let (width, height) = self.dimensions();
         if self.is_bounded(x, y) {
@@ -429,6 +229,218 @@ pub trait Map {
     fn is_bounded(&self, x: isize, y: isize) -> bool {
         let (width, height) = self.dimensions();
         x < 0 || y < 0 || x >= width || y >= height
+    }
+}
+
+pub fn field_of_view<T: Map>(
+    map: &mut T,
+    x: isize,
+    y: isize,
+    radius: isize,
+) -> Vec<(isize, isize)> {
+    let radius_square = radius.pow(2);
+    map.assert_in_bounds(x, y);
+
+    if radius < 1 {
+        return vec![(x, y)];
+    }
+
+    let (width, height) = map.dimensions();
+
+    let minx = (x - radius).max(0);
+    let miny = (y - radius).max(0);
+    let maxx = (x + radius).min(width - 1);
+    let maxy = (y + radius).min(height - 1);
+
+    if maxx - minx == 0 || maxy - miny == 0 {
+        // Well, no area to check.
+        return vec![];
+    }
+
+    let (sub_width, sub_height) = (maxx - minx + 1, maxy - miny + 1);
+    let (offset_x, offset_y) = (minx, miny);
+    let sub_origin = (x - offset_x, y - offset_y);
+
+    let mut visibles = vec![false; (sub_width * sub_height) as usize];
+    // Set origin as visible.
+    visibles[(x - offset_x + (y - offset_y) * sub_width) as usize];
+
+    for x in minx..maxx + 1 {
+        cast_ray(
+            map,
+            &mut visibles,
+            sub_width,
+            sub_origin,
+            (x - offset_x, miny - offset_y),
+            radius_square,
+            offset_x,
+            offset_y,
+        );
+        cast_ray(
+            map,
+            &mut visibles,
+            sub_width,
+            sub_origin,
+            (x - offset_x, maxy - offset_y),
+            radius_square,
+            offset_x,
+            offset_y,
+        );
+    }
+    for y in miny + 1..maxy {
+        cast_ray(
+            map,
+            &mut visibles,
+            sub_width,
+            sub_origin,
+            (minx - offset_x, y - offset_y),
+            radius_square,
+            offset_x,
+            offset_y,
+        );
+        cast_ray(
+            map,
+            &mut visibles,
+            sub_width,
+            sub_origin,
+            (maxx - offset_x, y - offset_y),
+            radius_square,
+            offset_x,
+            offset_y,
+        );
+    }
+
+    // SE
+    post_process_vision(
+        map,
+        &mut visibles,
+        sub_width,
+        x - offset_x + 1,
+        y - offset_y + 1,
+        maxx - offset_x,
+        maxy - offset_y,
+        -1,
+        -1,
+        offset_x,
+        offset_y,
+    );
+
+    // SW
+    post_process_vision(
+        map,
+        &mut visibles,
+        sub_width,
+        minx - offset_x,
+        y - offset_y + 1,
+        x - offset_x - 1,
+        maxy - offset_y,
+        1,
+        -1,
+        offset_x,
+        offset_y,
+    );
+
+    // NW
+    post_process_vision(
+        map,
+        &mut visibles,
+        sub_width,
+        minx - offset_x,
+        miny - offset_y,
+        x - offset_x - 1,
+        y - offset_y - 1,
+        1,
+        1,
+        offset_x,
+        offset_y,
+    );
+
+    // NE
+    post_process_vision(
+        map,
+        &mut visibles,
+        sub_width,
+        x - offset_x + 1,
+        miny - offset_y,
+        maxx - offset_x,
+        y - offset_y - 1,
+        -1,
+        1,
+        offset_x,
+        offset_y,
+    );
+
+    visibles
+        .iter()
+        .enumerate()
+        .filter(|&(_index, visible)| *visible)
+        .map(|(index, _)| {
+            (
+                index as isize % sub_width + offset_x,
+                index as isize / sub_width + offset_y,
+            )
+        })
+        .collect()
+}
+
+fn cast_ray<T: Map>(
+    map: &T,
+    visibles: &mut Vec<bool>,
+    width: isize,
+    origin: (isize, isize),
+    destination: (isize, isize),
+    radius_square: isize,
+    offset_x: isize,
+    offset_y: isize,
+) {
+    let (origin_x, origin_y) = origin;
+    let bresenham = Bresenham::new(origin, destination).skip(1);
+    for (x, y) in bresenham {
+        let distance = (x - origin_x).pow(2) + (y - origin_y).pow(2);
+        // If we are within radius, or if we ignore radius whatsoever.
+        if distance <= radius_square || radius_square == 0 {
+            visibles[(x + y * width) as usize] = true;
+        }
+
+        if !map.is_transparent(x + offset_x, y + offset_y) {
+            return;
+        }
+    }
+}
+
+fn post_process_vision<T: Map>(
+    map: &T,
+    visibles: &mut Vec<bool>,
+    width: isize,
+    minx: isize,
+    miny: isize,
+    maxx: isize,
+    maxy: isize,
+    dx: isize,
+    dy: isize,
+    offset_x: isize,
+    offset_y: isize,
+) {
+    for x in minx..=maxx {
+        for y in miny..=maxy {
+            let index = (x + y * width) as usize;
+            let transparent = map.is_transparent(x + offset_x, y + offset_y);
+            if !transparent && !visibles[index] {
+                // We check for walls that are not in vision only.
+                let neighboor_x = x + dx;
+                let neighboor_y = y + dy;
+
+                let index_0 = (neighboor_x + y * width) as usize;
+                let index_1 = (x + neighboor_y * width) as usize;
+
+                if (map.is_transparent(neighboor_x + offset_x, y + offset_y) && visibles[index_0])
+                    || (map.is_transparent(x + offset_x, neighboor_y + offset_y)
+                        && visibles[index_1])
+                {
+                    visibles[index] = true;
+                }
+            }
+        }
     }
 }
 
@@ -482,7 +494,7 @@ impl SampleMap {
             *see = false;
         }
 
-        let visibles = self.field_of_view(x, y, radius);
+        let visibles = field_of_view(self, x, y, radius);
 
         for (x, y) in visibles {
             self.vision[(x + y * self.width) as usize] = true
