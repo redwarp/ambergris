@@ -2,6 +2,7 @@ use crate::components::*;
 use crate::game::RunState;
 use crate::map::Map;
 use crate::resources::PlayerInfo;
+use field_of_vision::FovMap;
 use legion::component;
 use legion::system;
 use legion::systems::CommandBuffer;
@@ -19,13 +20,14 @@ pub fn monster_move(
     entity: &Entity,
     #[resource] player_info: &PlayerInfo,
     #[resource] run_state: &RunState,
+    #[resource] fov: &FovMap,
 ) {
     if run_state.clone() != RunState::AiTurn {
         return;
     }
     let player_position = player_info.position;
     let distance = body.distance_to(player_position);
-    if distance < 5.0 {
+    if fov.is_in_fov(body.x as isize, body.y as isize) {
         println!("The {} sees you.", body.name);
         if distance >= 2.0 {
             let dx = player_position.0 - body.x;

@@ -1,6 +1,8 @@
 use crate::engine::Engine;
+use crate::map::Map;
 use crate::resources::PlayerInfo;
 use crate::{components::*, game::State};
+use field_of_vision::FovMap;
 use legion::{Resources, World};
 use rand::rngs::StdRng;
 use rand::SeedableRng;
@@ -29,7 +31,9 @@ fn main() {
         },
     ));
     let map = crate::map::make_map(&mut world, &mut rng);
+    let fov = make_fov(&map);
     resources.insert(map);
+    resources.insert(fov);
     let mut state = State {
         world,
         resources,
@@ -40,4 +44,20 @@ fn main() {
     let mut renderer = Engine::new();
 
     renderer.run(&mut state);
+}
+
+fn make_fov(map: &Map) -> FovMap {
+    let mut fov = FovMap::new(map.width as isize, map.height as isize);
+
+    for y in 0..map.height {
+        for x in 0..map.width {
+            fov.set_transparent(
+                x as isize,
+                y as isize,
+                !map.tiles[x as usize + y as usize * map.width as usize].block_sight,
+            );
+        }
+    }
+
+    fov
 }

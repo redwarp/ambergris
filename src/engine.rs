@@ -45,7 +45,6 @@ const TORCH_RADIUS: isize = 10;
 pub struct Engine {
     root: Root,
     console: Offscreen,
-    fov: FovMap,
 }
 
 impl Engine {
@@ -62,7 +61,6 @@ impl Engine {
         Engine {
             root,
             console: Offscreen::new(1, 1),
-            fov: FovMap::new(1, 1),
         }
     }
 
@@ -119,9 +117,11 @@ impl Engine {
         self.console.clear();
         self.render_map(state, fov_recompute);
 
+        let fov = state.resources.get::<FovMap>().unwrap();
+
         let mut query = <&Body>::query();
         for body in query.iter(&state.world) {
-            if self.fov.is_in_fov(body.x as isize, body.y as isize) {
+            if fov.is_in_fov(body.x as isize, body.y as isize) {
                 self.root.set_default_foreground(body.color);
                 self.root
                     .put_char(body.x, body.y, body.char, BackgroundFlag::None);
@@ -131,16 +131,16 @@ impl Engine {
 
     fn render_map(&mut self, state: &mut State, fov_recompute: bool) {
         let mut map = state.resources.get_mut::<Map>().unwrap();
+        let mut fov = state.resources.get_mut::<FovMap>().unwrap();
+
         if self.console.width() != map.width || self.console.height() != map.height {
             self.console = Offscreen::new(map.width, map.height);
-            self.fov = make_fov(&map);
         }
 
         if fov_recompute {
             let mut query = <(&Player, &Body)>::query();
             for (_, body) in query.iter(&state.world) {
-                self.fov
-                    .calculate_fov(body.x as isize, body.y as isize, TORCH_RADIUS);
+                fov.calculate_fov(body.x as isize, body.y as isize, TORCH_RADIUS);
             }
         }
 
@@ -148,7 +148,7 @@ impl Engine {
         let map_height = map.height;
         for y in 0..map_height {
             for x in 0..map_width {
-                let visible = self.fov.is_in_fov(x as isize, y as isize);
+                let visible = fov.is_in_fov(x as isize, y as isize);
                 let wall = map.tiles[x as usize + y as usize * map_width as usize].block_sight;
                 let color = match (visible, wall) {
                     (false, true) => COLOR_DARK_WALL,
@@ -239,22 +239,6 @@ impl Engine {
             _ => RunState::WaitForInput,
         }
     }
-}
-
-fn make_fov(map: &Map) -> FovMap {
-    let mut fov = FovMap::new(map.width as isize, map.height as isize);
-
-    for y in 0..map.height {
-        for x in 0..map.width {
-            fov.set_transparent(
-                x as isize,
-                y as isize,
-                !map.tiles[x as usize + y as usize * map.width as usize].block_sight,
-            );
-        }
-    }
-
-    fov
 }
 
 fn check_for_event() -> (Mouse, Key) {
