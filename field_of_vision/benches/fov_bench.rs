@@ -14,7 +14,7 @@ pub fn fov_benchmark_no_walls(c: &mut Criterion) {
     let mut fov = FovMap::new(WIDTH, HEIGHT);
 
     c.bench_function("fov_benchmark_no_walls", |bencher| {
-        bencher.iter(|| fov.calculate_fov(POSITION_X, POSITION_Y, 24));
+        bencher.iter(|| fov.calculate_fov(POSITION_X, POSITION_Y, RADIUS));
     });
 }
 
@@ -28,7 +28,7 @@ pub fn fov_benchmark_random_walls(c: &mut Criterion) {
     fov.set_transparent(POSITION_X, POSITION_Y, true);
 
     c.bench_function("fov_benchmark_random_walls", |bencher| {
-        bencher.iter(|| fov.calculate_fov(POSITION_X, POSITION_Y, 24));
+        bencher.iter(|| fov.calculate_fov(POSITION_X, POSITION_Y, RADIUS));
     });
 }
 
@@ -36,7 +36,7 @@ pub fn vec_fov_benchmark_no_walls(c: &mut Criterion) {
     let mut fov = SampleMap::new(WIDTH, HEIGHT);
 
     c.bench_function("vec_fov_benchmark_no_walls", |bencher| {
-        bencher.iter(|| fov.calculate_fov(POSITION_X, POSITION_Y, 24));
+        bencher.iter(|| fov.calculate_fov(POSITION_X, POSITION_Y, RADIUS));
     });
 }
 
@@ -50,7 +50,7 @@ pub fn vec_fov_benchmark_random_walls(c: &mut Criterion) {
     fov.set_transparent(POSITION_X, POSITION_Y, true);
 
     c.bench_function("vec_fov_benchmark_random_walls", |bencher| {
-        bencher.iter(|| fov.calculate_fov(POSITION_X, POSITION_Y, 24));
+        bencher.iter(|| fov.calculate_fov(POSITION_X, POSITION_Y, RADIUS));
     });
 }
 
