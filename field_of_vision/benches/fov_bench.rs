@@ -7,7 +7,7 @@ const WIDTH: isize = 45;
 const HEIGHT: isize = 45;
 const POSITION_X: isize = 22;
 const POSITION_Y: isize = 22;
-const RADIUS: isize = 24;
+const RADIUS: isize = 12;
 const RANDOM_WALLS: isize = 10;
 
 pub fn fov_benchmark_no_walls(c: &mut Criterion) {

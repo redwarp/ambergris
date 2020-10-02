@@ -1,7 +1,6 @@
 mod bresenham;
 
 use crate::bresenham::Bresenham;
-use std::collections::HashSet;
 use std::fmt::Debug;
 
 /// Using https://sites.google.com/site/jicenospam/visibilitydetermination
@@ -89,18 +88,13 @@ impl FovMap {
             return;
         }
 
-        let mut extremities = Vec::new();
         for x in minx..maxx + 1 {
-            extremities.push((x, miny));
-            extremities.push((x, maxy));
+            self.cast_ray_and_mark_visible((x, y), (x, miny), radius_square);
+            self.cast_ray_and_mark_visible((x, y), (x, maxy), radius_square);
         }
         for y in miny + 1..maxy {
-            extremities.push((minx, y));
-            extremities.push((maxx, y));
-        }
-
-        for destination in extremities {
-            self.cast_ray_and_mark_visible((x, y), destination, radius_square);
+            self.cast_ray_and_mark_visible((x, y), (minx, y), radius_square);
+            self.cast_ray_and_mark_visible((x, y), (maxx, y), radius_square);
         }
 
         self.post_process_vision(x + 1, y + 1, maxx, maxy, -1, -1);
@@ -247,24 +241,44 @@ pub trait Map {
         let sub_origin = (x - offset_x, y - offset_y);
 
         let mut visibles = vec![false; (sub_width * sub_height) as usize];
+        // Set origin as visible.
         visibles[(x - offset_x + (y - offset_y) * sub_width) as usize];
 
-        let mut extremities = Vec::new();
         for x in minx..maxx + 1 {
-            extremities.push((x - offset_x, miny - offset_y));
-            extremities.push((x - offset_x, maxy - offset_y));
-        }
-        for y in miny + 1..maxy {
-            extremities.push((minx - offset_x, y - offset_y));
-            extremities.push((maxx - offset_x, y - offset_y));
-        }
-
-        for destination in extremities {
             self.cast_ray(
                 &mut visibles,
                 sub_width,
                 sub_origin,
-                destination,
+                (x - offset_x, miny - offset_y),
+                radius_square,
+                offset_x,
+                offset_y,
+            );
+            self.cast_ray(
+                &mut visibles,
+                sub_width,
+                sub_origin,
+                (x - offset_x, maxy - offset_y),
+                radius_square,
+                offset_x,
+                offset_y,
+            );
+        }
+        for y in miny + 1..maxy {
+            self.cast_ray(
+                &mut visibles,
+                sub_width,
+                sub_origin,
+                (minx - offset_x, y - offset_y),
+                radius_square,
+                offset_x,
+                offset_y,
+            );
+            self.cast_ray(
+                &mut visibles,
+                sub_width,
+                sub_origin,
+                (maxx - offset_x, y - offset_y),
                 radius_square,
                 offset_x,
                 offset_y,
