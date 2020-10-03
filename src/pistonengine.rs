@@ -1,9 +1,9 @@
 use graphics::character::CharacterCache;
 use legion::*;
-use piston_window::types::Color as PistonColor;
 use piston_window::Graphics;
 use piston_window::PistonWindow;
 use piston_window::*;
+use piston_window::{types::Color as PistonColor, WindowSettings};
 
 use crate::game::{RunState, State};
 use crate::resources::*;
@@ -49,11 +49,12 @@ pub struct Engine {
 
 impl Engine {
     pub fn new<T: Into<String>>(title: T, width_in_squares: u32, height_in_squares: u32) -> Self {
-        let window: PistonWindow = piston_window::WindowSettings::new(
+        let window: PistonWindow = WindowSettings::new(
             title,
             (width_in_squares * GRID_SIZE, height_in_squares * GRID_SIZE),
         )
         .exit_on_esc(true)
+        .resizable(false)
         .build()
         .expect("Failed to initialize the window");
 
