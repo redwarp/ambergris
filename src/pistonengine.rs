@@ -1,3 +1,6 @@
+use graphics::character::Character;
+use graphics::character::CharacterCache;
+use graphics::ImageSize;
 use legion::*;
 use piston_window::PistonWindow;
 use piston_window::*;
@@ -41,30 +44,32 @@ const COLOR_LIGHT_GROUND: Color = Color {
 const TORCH_RADIUS: isize = 10;
 
 pub struct Engine {
-    window: Option<PistonWindow>,
+    title: String,
+    width: u32,
+    height: u32,
     console: Console,
 }
 
 impl Engine {
-    pub fn new<T: Into<String>>(title: T, width_in_squares: u32, height_in_squares: u32) -> Self {
-        let window: PistonWindow = WindowSettings::new(
-            title,
-            (width_in_squares * GRID_SIZE, height_in_squares * GRID_SIZE),
-        )
-        .exit_on_esc(true)
-        .resizable(false)
-        .build()
-        .expect("Failed to initialize the window");
-
+    pub fn new<T: Into<String>>(title: T, width: u32, height: u32) -> Self {
         Engine {
-            window: Some(window),
+            title: title.into(),
+            width,
+            height,
             console: Console::new(1, 1),
         }
     }
 
     pub fn run(&mut self, state: &mut State) {
-        let mut events = Events::new(EventSettings::new().lazy(true).ups(2));
-        let mut window = self.window.take().unwrap();
+        let mut window: PistonWindow = WindowSettings::new(
+            &self.title,
+            (self.width * GRID_SIZE, self.height * GRID_SIZE),
+        )
+        .exit_on_esc(false)
+        .resizable(false)
+        .build()
+        .expect("Failed to initialize the window");
+        let mut events = Events::new(EventSettings::new());
 
         let texture_settings = TextureSettings::new().filter(Filter::Nearest);
         let texture_context = window.create_texture_context();
@@ -79,29 +84,42 @@ impl Engine {
 
         let mut previous_position = state.resources.get::<PlayerInfo>().unwrap().position;
 
-        while let Some(event) = events.next(&mut window) {
-            let previous_state = state.resources.get_or_insert(RunState::Init).clone();
-            let new_run_state = match previous_state {
-                RunState::Init => {
-                    schedule.execute(&mut state.world, &mut state.resources);
-                    RunState::WaitForInput
-                }
-                RunState::PlayerTurn => {
-                    schedule.execute(&mut state.world, &mut state.resources);
-                    RunState::AiTurn
-                }
-                RunState::AiTurn => {
-                    schedule.execute(&mut state.world, &mut state.resources);
-                    RunState::WaitForInput
-                }
-                RunState::WaitForInput => RunState::WaitForInput,
-                RunState::Exit => break,
-            };
+        let mut pending_button = None;
 
-            if let Some(_args) = event.render_args() {
+        while let Some(event) = events.next(&mut window) {
+            if let Some(button) = event.press_args() {
+                pending_button = Some(button);
+            }
+
+            if let Some(_args) = event.update_args() {
+                let previous_state = state.resources.get_or_insert(RunState::Init).clone();
+                let new_run_state = match previous_state {
+                    RunState::Init => {
+                        schedule.execute(&mut state.world, &mut state.resources);
+                        RunState::WaitForInput
+                    }
+                    RunState::PlayerTurn => {
+                        schedule.execute(&mut state.world, &mut state.resources);
+                        RunState::AiTurn
+                    }
+                    RunState::AiTurn => {
+                        schedule.execute(&mut state.world, &mut state.resources);
+                        RunState::WaitForInput
+                    }
+                    RunState::WaitForInput => self.consume_button(pending_button.take(), state),
+                    RunState::Exit => break,
+                };
+
+                state.resources.insert(new_run_state);
+
                 let updated_position = state.resources.get::<PlayerInfo>().unwrap().position;
 
                 self.prepare_console(state, previous_position != updated_position);
+
+                previous_position = updated_position;
+            };
+
+            if let Some(_args) = event.render_args() {
                 window.draw_2d(&event, |context, graphics, device| {
                     clear(BLACK.into(), graphics);
                     self.console.render(
@@ -115,14 +133,8 @@ impl Engine {
 
                     glyphs.factory.encoder.flush(device);
                 });
-
-                previous_position = updated_position;
-            }
-
-            state.resources.insert(new_run_state);
+            };
         }
-
-        self.window = Some(window);
     }
 
     pub fn prepare_console(&mut self, state: &mut State, compute_fov: bool) {
@@ -178,6 +190,37 @@ impl Engine {
                     self.console.set_background(x, y, color);
                 }
             }
+        }
+    }
+
+    fn consume_button(&self, button: Option<Button>, state: &mut State) -> RunState {
+        if let Some(button) = button {
+            match button {
+                Button::Keyboard(key) => match key {
+                    Key::W | Key::Up => {
+                        state.move_player(0, -1);
+                        RunState::PlayerTurn
+                    }
+                    Key::A | Key::Left => {
+                        state.move_player(-1, 0);
+                        RunState::PlayerTurn
+                    }
+                    Key::S | Key::Down => {
+                        state.move_player(0, 1);
+                        RunState::PlayerTurn
+                    }
+                    Key::D | Key::Right => {
+                        state.move_player(1, 0);
+                        RunState::PlayerTurn
+                    }
+                    Key::Escape => RunState::Exit,
+                    Key::Space => RunState::PlayerTurn,
+                    _ => RunState::WaitForInput,
+                },
+                _ => RunState::WaitForInput,
+            }
+        } else {
+            RunState::WaitForInput
         }
     }
 }
@@ -252,8 +295,11 @@ impl Console {
     }
 
     fn clear(&mut self) {
-        for color in self.background.iter_mut() {
-            *color = None;
+        for background in self.background.iter_mut() {
+            *background = None;
+        }
+        for foreground in self.foreground.iter_mut() {
+            *foreground = None;
         }
     }
 
@@ -285,6 +331,9 @@ impl Console {
         let dx = destination_x - origin_x;
         let dy = destination_y - origin_y;
 
+        let font_adjust_x = GRID_SIZE as f64 * 0.1;
+        let font_adjust_y = GRID_SIZE as f64 * 0.9;
+
         for x in origin_x..origin_width {
             for y in origin_y..origin_height {
                 let (draw_x, draw_y) = (
@@ -299,12 +348,22 @@ impl Console {
                 }
 
                 if let Some((glyph, color)) = self.foreground[(x + y * self.width) as usize] {
+                    let character = glyphs
+                        .character(GRID_SIZE, glyph)
+                        .expect("Could not get glyph");
+                    let font_adjust_x =
+                        character.left() + (GRID_SIZE as f64 - character.atlas_size[0]) / 2.0;
+                    let font_adjust_y =
+                        character.top() + (GRID_SIZE as f64 - character.atlas_size[1]) / 2.0;
+
                     text::Text::new_color(color.into(), GRID_SIZE)
                         .draw(
                             &format!("{}", glyph),
                             glyphs,
                             &context.draw_state,
-                            context.transform.trans(draw_x, draw_y),
+                            context
+                                .transform
+                                .trans(draw_x + font_adjust_x, draw_y + font_adjust_y),
                             graphics,
                         )
                         .expect("Could not draw glyph");
