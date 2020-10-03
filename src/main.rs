@@ -7,6 +7,7 @@ use field_of_vision::FovMap;
 use legion::{Resources, World};
 use rand::rngs::StdRng;
 use rand::SeedableRng;
+mod colors;
 mod components;
 mod game;
 mod map;
@@ -14,15 +15,12 @@ mod pistonengine;
 mod resources;
 mod spawner;
 mod systems;
-mod tcodengine;
 
 // actual size of the window
 const SCREEN_WIDTH: u32 = 80;
 const SCREEN_HEIGHT: u32 = 50;
 
 fn main() {
-    println!("Hello, world!");
-
     let mut rng = StdRng::seed_from_u64(42);
     let mut world = World::default();
     let mut resources = Resources::default();

@@ -19,7 +19,7 @@ fn spawn_orc_body(x: i32, y: i32) -> (Monster, Body, CombatStats) {
         y,
         blocking: true,
         char: 'o',
-        color: tcod::colors::DESATURATED_GREEN,
+        color: crate::colors::DESATURATED_GREEN,
     };
     let combat_stats = CombatStats {
         max_hp: 12,
@@ -37,7 +37,7 @@ fn spawn_troll_body(x: i32, y: i32) -> (Monster, Body, CombatStats) {
         y,
         blocking: true,
         char: 'T',
-        color: tcod::colors::DARKER_GREEN,
+        color: crate::colors::DARKER_GREEN,
     };
     let combat_stats = CombatStats {
         max_hp: 12,
@@ -57,7 +57,7 @@ pub fn spawn_player(x: i32, y: i32) -> (Player, Body, CombatStats) {
             y,
             blocking: true,
             char: '@',
-            color: tcod::colors::YELLOW,
+            color: crate::colors::YELLOW,
         },
         CombatStats {
             max_hp: 30,

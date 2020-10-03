@@ -6,6 +6,7 @@ use piston_window::PistonWindow;
 use piston_window::*;
 use piston_window::{types::Color as PistonColor, WindowSettings};
 
+use crate::colors::{Color, BLACK};
 use crate::game::{RunState, State};
 use crate::resources::*;
 use crate::systems;
@@ -225,36 +226,6 @@ impl Engine {
     }
 }
 
-#[derive(Copy, Clone, PartialEq, Debug)]
-struct Color {
-    a: u8,
-    r: u8,
-    g: u8,
-    b: u8,
-}
-
-impl Color {
-    const fn new(a: u8, r: u8, g: u8, b: u8) -> Self {
-        Color { a, r, g, b }
-    }
-
-    const fn from_argb(argb: u32) -> Self {
-        let a = (argb >> 24) as u8;
-        let r = (argb >> 16 & 0xff) as u8;
-        let g = (argb >> 8 & 0xff) as u8;
-        let b = (argb & 0xff) as u8;
-        Color { a, r, g, b }
-    }
-
-    const fn from_rgb(rgb: u32) -> Self {
-        let a = 255;
-        let r = (rgb >> 16 & 0xff) as u8;
-        let g = (rgb >> 8 & 0xff) as u8;
-        let b = (rgb & 0xff) as u8;
-        Color { a, r, g, b }
-    }
-}
-
 impl Into<PistonColor> for Color {
     fn into(self) -> PistonColor {
         [
@@ -263,17 +234,6 @@ impl Into<PistonColor> for Color {
             self.b as f32 / 255.0,
             self.a as f32 / 255.0,
         ]
-    }
-}
-
-impl Into<Color> for tcod::Color {
-    fn into(self) -> Color {
-        Color {
-            a: 255,
-            r: self.r,
-            g: self.g,
-            b: self.b,
-        }
     }
 }
 
@@ -331,9 +291,6 @@ impl Console {
         let dx = destination_x - origin_x;
         let dy = destination_y - origin_y;
 
-        let font_adjust_x = GRID_SIZE as f64 * 0.1;
-        let font_adjust_y = GRID_SIZE as f64 * 0.9;
-
         for x in origin_x..origin_width {
             for y in origin_y..origin_height {
                 let (draw_x, draw_y) = (
@@ -370,42 +327,5 @@ impl Console {
                 }
             }
         }
-    }
-}
-
-const BLACK: Color = Color::from_rgb(0x000000);
-
-#[cfg(test)]
-mod tests {
-    use crate::pistonengine::Color;
-
-    #[test]
-    fn color_from_argb() {
-        let color = Color::from_argb(0x33123456);
-
-        assert_eq!(
-            color,
-            Color {
-                a: 0x33,
-                r: 0x12,
-                g: 0x34,
-                b: 0x56
-            }
-        )
-    }
-
-    #[test]
-    fn color_from_rgb() {
-        let color = Color::from_rgb(0x123456);
-
-        assert_eq!(
-            color,
-            Color {
-                a: 0xff,
-                r: 0x12,
-                g: 0x34,
-                b: 0x56
-            }
-        )
     }
 }

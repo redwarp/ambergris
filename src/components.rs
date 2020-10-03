@@ -1,7 +1,7 @@
+use crate::colors::Color;
 use crate::game::Ai;
 use crate::map::Position;
 use legion::Entity;
-use tcod::colors::Color;
 
 pub struct Body {
     pub name: String,

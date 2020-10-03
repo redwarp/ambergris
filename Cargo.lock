@@ -39,7 +39,6 @@ dependencies = [
  "piston2d-graphics",
  "piston_window",
  "rand",
- "tcod",
 ]
 
 [[package]]
@@ -2164,8 +2163,6 @@ checksum = "44e518b0661949712e8dbc6d6d9d7c00a405dd88bc539102c1edfc2d22e5e144"
 dependencies = [
  "bitflags 0.1.1",
  "lazy_static 0.1.16",
- "serde",
- "serde_derive",
  "tcod-sys",
 ]
 
