@@ -2,7 +2,6 @@ use crate::game::State;
 use crate::map::Map;
 use crate::pistonengine::Engine as PistonEngine;
 use crate::resources::PlayerInfo;
-use crate::tcodengine::Engine;
 
 use field_of_vision::FovMap;
 use legion::{Resources, World};

@@ -1,6 +1,4 @@
-use graphics::character::CharacterCache;
 use legion::*;
-use piston_window::Graphics;
 use piston_window::PistonWindow;
 use piston_window::*;
 use piston_window::{types::Color as PistonColor, WindowSettings};
@@ -184,7 +182,7 @@ impl Engine {
     }
 }
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, PartialEq, Debug)]
 struct Color {
     a: u8,
     r: u8,
@@ -317,3 +315,38 @@ impl Console {
 }
 
 const BLACK: Color = Color::from_rgb(0x000000);
+
+#[cfg(test)]
+mod tests {
+    use crate::pistonengine::Color;
+
+    #[test]
+    fn color_from_argb() {
+        let color = Color::from_argb(0x33123456);
+
+        assert_eq!(
+            color,
+            Color {
+                a: 0x33,
+                r: 0x12,
+                g: 0x34,
+                b: 0x56
+            }
+        )
+    }
+
+    #[test]
+    fn color_from_rgb() {
+        let color = Color::from_rgb(0x123456);
+
+        assert_eq!(
+            color,
+            Color {
+                a: 0xff,
+                r: 0x12,
+                g: 0x34,
+                b: 0x56
+            }
+        )
+    }
+}
