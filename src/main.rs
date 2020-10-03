@@ -1,19 +1,25 @@
-use crate::engine::Engine;
 use crate::game::State;
 use crate::map::Map;
+use crate::pistonengine::Engine as PistonEngine;
 use crate::resources::PlayerInfo;
+use crate::tcodengine::Engine;
 
 use field_of_vision::FovMap;
 use legion::{Resources, World};
 use rand::rngs::StdRng;
 use rand::SeedableRng;
 mod components;
-mod engine;
 mod game;
 mod map;
+mod pistonengine;
 mod resources;
 mod spawner;
 mod systems;
+mod tcodengine;
+
+// actual size of the window
+const SCREEN_WIDTH: u32 = 80;
+const SCREEN_HEIGHT: u32 = 50;
 
 fn main() {
     println!("Hello, world!");
@@ -36,8 +42,11 @@ fn main() {
         position: (-1, -1),
     });
 
-    let mut renderer = Engine::new();
+    // let mut renderer = Engine::new(SCREEN_WIDTH, SCREEN_HEIGHT);
 
+    // renderer.run(&mut state);
+
+    let mut renderer = PistonEngine::new("Ambergris", SCREEN_WIDTH, SCREEN_HEIGHT);
     renderer.run(&mut state);
 }
 

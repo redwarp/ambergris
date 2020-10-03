@@ -13,13 +13,8 @@ use input::Key;
 use input::KeyCode;
 use input::Mouse;
 use legion::IntoQuery;
-use legion::Schedule;
 use tcod::console::{blit, BackgroundFlag, Console, FontLayout, FontType, Offscreen, Root};
 use tcod::{colors::Color, input};
-
-// actual size of the window
-const SCREEN_WIDTH: i32 = 80;
-const SCREEN_HEIGHT: i32 = 50;
 
 const LIMIT_FPS: i32 = 20; // 20 frames-per-second maximum
 
@@ -47,13 +42,14 @@ pub struct Engine {
     console: Offscreen,
 }
 
+#[allow(dead_code)]
 impl Engine {
-    pub fn new() -> Self {
+    pub fn new(width: i32, height: i32) -> Self {
         let root = Root::initializer()
             .font("consolas_unicode_16x16.png", FontLayout::AsciiInRow)
             .font_type(FontType::Greyscale)
             .font_dimensions(32, 64)
-            .size(SCREEN_WIDTH, SCREEN_HEIGHT)
+            .size(width, height)
             .title("Rust/libtcod tutorial")
             .init();
 
@@ -65,14 +61,7 @@ impl Engine {
     }
 
     pub fn run(&mut self, state: &mut State) {
-        let mut schedule = Schedule::builder()
-            .add_system(systems::monster_move_system())
-            .flush()
-            .add_system(systems::attack_actions_system())
-            .add_system(systems::move_actions_system())
-            .flush()
-            .add_system(systems::update_map_and_position_system())
-            .build();
+        let mut schedule = systems::game_schedule();
 
         let mut previous_position = state.resources.get::<PlayerInfo>().unwrap().position;
 

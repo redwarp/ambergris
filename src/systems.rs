@@ -9,6 +9,18 @@ use legion::systems::CommandBuffer;
 use legion::world::SubWorld;
 use legion::Entity;
 use legion::IntoQuery;
+use legion::Schedule;
+
+pub fn game_schedule() -> Schedule {
+    Schedule::builder()
+        .add_system(monster_move_system())
+        .flush()
+        .add_system(attack_actions_system())
+        .add_system(move_actions_system())
+        .flush()
+        .add_system(update_map_and_position_system())
+        .build()
+}
 
 #[system(for_each)]
 #[filter(!component::<Player>())]

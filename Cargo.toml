@@ -12,6 +12,8 @@ tcod = { version = "0.15.0", features = ["serialization"] }
 rand = "0.7.3"
 legion = "0.3.1"
 field_of_vision = { path = "field_of_vision" }
+piston_window = "0.113.0"
+piston2d-graphics = "0.37.0"
 
 [workspace]
 members = ["field_of_vision"]
