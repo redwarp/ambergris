@@ -103,7 +103,7 @@ impl Engine {
                 let updated_position = state.resources.get::<PlayerInfo>().unwrap().position;
 
                 self.prepare_console(state, previous_position != updated_position);
-                window.draw_2d(&event, |context, graphics, _device| {
+                window.draw_2d(&event, |context, graphics, device| {
                     clear(BLACK.into(), graphics);
                     self.console.render(
                         graphics,
@@ -113,6 +113,8 @@ impl Engine {
                         (self.console.width, self.console.height),
                         (0, 0),
                     );
+
+                    glyphs.factory.encoder.flush(device);
                 });
 
                 previous_position = updated_position;
@@ -293,11 +295,7 @@ impl Console {
                 if let Some(color) = self.background[(x + y * self.width) as usize] {
                     let color: PistonColor = color.into();
 
-                    let square = graphics::rectangle::square(
-                        ((x + dx) * GRID_SIZE as i32) as f64,
-                        ((y + dy) * GRID_SIZE as i32) as f64,
-                        GRID_SIZE as f64,
-                    );
+                    let square = graphics::rectangle::square(draw_x, draw_y, GRID_SIZE as f64);
                     graphics::rectangle(color, square, context.transform, graphics);
                 }
 
