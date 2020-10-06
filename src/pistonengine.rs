@@ -94,6 +94,7 @@ impl Engine {
 
             if let Some(_args) = event.update_args() {
                 let previous_state = state.resources.get_or_insert(RunState::Init).clone();
+
                 let new_run_state = match previous_state {
                     RunState::Init => {
                         schedule.execute(&mut state.world, &mut state.resources);
@@ -107,8 +108,11 @@ impl Engine {
                         schedule.execute(&mut state.world, &mut state.resources);
                         RunState::WaitForInput
                     }
-                    RunState::WaitForInput => self.consume_button(pending_button.take(), state),
+                    RunState::WaitForInput => {
+                        self.consume_button(pending_button.take(), state, &previous_state)
+                    }
                     RunState::Exit => break,
+                    RunState::Death => RunState::WaitForInput,
                 };
 
                 state.resources.insert(new_run_state);
@@ -196,7 +200,16 @@ impl Engine {
         }
     }
 
-    fn consume_button(&self, button: Option<Button>, state: &mut State) -> RunState {
+    fn consume_button(
+        &self,
+        button: Option<Button>,
+        state: &mut State,
+        run_state: &RunState,
+    ) -> RunState {
+        if *run_state == RunState::Death {
+            return RunState::WaitForInput;
+        }
+
         if let Some(button) = button {
             match button {
                 Button::Keyboard(key) => match key {

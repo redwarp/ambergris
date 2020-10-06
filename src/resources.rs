@@ -5,4 +5,5 @@ use crate::map::Position;
 pub struct PlayerInfo {
     pub entity: Entity,
     pub position: Position,
+    pub alive: bool,
 }

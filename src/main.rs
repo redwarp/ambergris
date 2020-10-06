@@ -37,6 +37,7 @@ fn main() {
     state.resources.insert(PlayerInfo {
         entity: player_entity,
         position: (-1, -1),
+        alive: true,
     });
 
     // let mut renderer = Engine::new(SCREEN_WIDTH, SCREEN_HEIGHT);

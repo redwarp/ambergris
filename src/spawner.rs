@@ -25,7 +25,7 @@ fn spawn_orc_body(x: i32, y: i32) -> (Monster, Body, CombatStats) {
         max_hp: 12,
         hp: 12,
         defense: 1,
-        attack: 2,
+        attack: 3,
     };
     (Monster { ai: Ai::Basic }, body, combat_stats)
 }
@@ -40,10 +40,10 @@ fn spawn_troll_body(x: i32, y: i32) -> (Monster, Body, CombatStats) {
         color: crate::colors::DARKER_GREEN,
     };
     let combat_stats = CombatStats {
-        max_hp: 12,
-        hp: 12,
+        max_hp: 20,
+        hp: 20,
         defense: 1,
-        attack: 2,
+        attack: 6,
     };
     (Monster { ai: Ai::Basic }, body, combat_stats)
 }

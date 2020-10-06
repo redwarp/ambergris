@@ -22,6 +22,8 @@ pub fn game_schedule() -> Schedule {
         .add_system(move_actions_system())
         .flush()
         .add_system(update_map_and_position_system())
+        .add_system(check_game_lost_system())
+        .flush()
         .build()
 }
 
@@ -175,6 +177,15 @@ pub fn cleanup_deads(
         body.blocking = false;
 
         cmd.remove_component::<CombatStats>(*entity);
-        cmd.remove_component::<Monster>(*entity);
+    }
+}
+
+#[system(for_each)]
+#[filter(component::<Player>())]
+pub fn check_game_lost(body: &mut Body, #[resource] player_info: &mut PlayerInfo) {
+    if body.char == '%' {
+        // All is lost.
+        println!("All is lost!!!");
+        player_info.alive = false;
     }
 }
