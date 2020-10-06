@@ -70,7 +70,7 @@ impl Engine {
         .resizable(false)
         .build()
         .expect("Failed to initialize the window");
-        let mut events = Events::new(EventSettings::new());
+        let mut events = Events::new(EventSettings::new().max_fps(30).ups(30));
 
         let texture_settings = TextureSettings::new().filter(Filter::Nearest);
         let texture_context = window.create_texture_context();
@@ -145,7 +145,9 @@ impl Engine {
         let fov = state.resources.get::<FovMap>().unwrap();
 
         let mut query = <&Body>::query();
-        for body in query.iter(&state.world) {
+        let mut bodies: Vec<_> = query.iter(&state.world).collect();
+        bodies.sort_by(|&body_0, &body_1| body_0.blocking.cmp(&body_1.blocking));
+        for body in bodies {
             if fov.is_in_fov(body.x as isize, body.y as isize) {
                 self.console
                     .set_foreground(body.x, body.y, body.char, body.color);

@@ -1,3 +1,4 @@
+use crate::colors::DARK_RED;
 use crate::components::*;
 use crate::game::RunState;
 use crate::map::Map;
@@ -16,6 +17,8 @@ pub fn game_schedule() -> Schedule {
         .add_system(monster_move_system())
         .flush()
         .add_system(attack_actions_system())
+        .add_system(cleanup_deads_system())
+        .flush()
         .add_system(move_actions_system())
         .flush()
         .add_system(update_map_and_position_system())
@@ -29,6 +32,7 @@ pub fn monster_move(
     cmd: &mut CommandBuffer,
     body: &Body,
     _: &Monster,
+    _: &CombatStats,
     entity: &Entity,
     #[resource] player_info: &PlayerInfo,
     #[resource] run_state: &RunState,
@@ -47,7 +51,6 @@ pub fn monster_move(
 
             let dx = (dx as f32 / distance).round() as i32;
             let dy = (dy as f32 / distance).round() as i32;
-            println!("Entity {:?} set to move", entity);
 
             cmd.push((MoveAction {
                 entity: *entity,
@@ -100,8 +103,6 @@ pub fn move_actions(
 ) {
     let mut query = <&mut Body>::query();
 
-    println!("Now moving entity {:?}", move_action.entity);
-
     let body = query.get_mut(world, move_action.entity);
     if let Ok(body) = body {
         let old_position = body.position();
@@ -121,8 +122,8 @@ pub fn move_actions(
 }
 
 #[system(for_each)]
-#[read_component(CombatStats)]
 #[read_component(Body)]
+#[write_component(CombatStats)]
 pub fn attack_actions(
     cmd: &mut CommandBuffer,
     world: &mut SubWorld,
@@ -133,13 +134,47 @@ pub fn attack_actions(
         .get(world, move_action.attacker_entity)
         .unwrap();
     let attacker_name = attacker_body.name.clone();
+    let attacker_attack = attacker_stats.attack;
 
-    let (target_body, target_stats) = <(&Body, &CombatStats)>::query()
-        .get(world, move_action.target_entity)
+    let (target_body, target_stats) = <(&Body, &mut CombatStats)>::query()
+        .get_mut(world, move_action.target_entity)
         .unwrap();
-    let target_name = target_body.name.clone();
 
-    println!("The {} tries to attack {}", attacker_name, target_name);
+    let damage = attacker_attack - target_stats.defense;
+
+    if damage > 0 {
+        println!(
+            "The {} attacks the {} for {} damage.",
+            attacker_name, target_body.name, damage
+        );
+    } else {
+        println!(
+            "The {} is too weak to damage the {}.",
+            attacker_name, target_body.name
+        );
+    }
+
+    target_stats.hp = (target_stats.hp - damage).max(0);
 
     cmd.remove(*entity);
+}
+
+#[system(for_each)]
+pub fn cleanup_deads(
+    cmd: &mut CommandBuffer,
+    entity: &Entity,
+    body: &mut Body,
+    combat_stats: &CombatStats,
+) {
+    if combat_stats.hp == 0 {
+        // We found a cadaver!
+        println!("The {} is dead.", body.name);
+
+        body.char = '%';
+        body.color = DARK_RED;
+        body.blocking = false;
+
+        cmd.remove_component::<CombatStats>(*entity);
+        cmd.remove_component::<Monster>(*entity);
+    }
 }
