@@ -5,6 +5,7 @@ use piston_window::*;
 use piston_window::{types::Color as PistonColor, WindowSettings};
 
 use crate::colors::{Color, BLACK};
+use crate::components::CombatStats;
 use crate::game::{RunState, State};
 use crate::resources::*;
 use crate::systems;
@@ -131,6 +132,8 @@ impl Engine {
             };
 
             if let Some(_args) = event.render_args() {
+                let player_life = current_player_life(state);
+
                 window.draw_2d(&event, |context, graphics, device| {
                     clear(BLACK.into(), graphics);
                     self.console.render(
@@ -141,8 +144,17 @@ impl Engine {
                         (self.console.width, self.console.height),
                         (0, 0),
                     );
-
                     glyphs.factory.encoder.flush(device);
+
+                    if let Some((hp, max_hp)) = player_life {
+                        let health_bar = StatBar {
+                            name: String::from("Health"),
+                            color: crate::colors::DARK_RED,
+                            current: hp as u32,
+                            max: max_hp as u32,
+                        };
+                        health_bar.render(graphics, context, (1, 1));
+                    }
                 });
             };
         }
@@ -252,6 +264,13 @@ impl Engine {
     }
 }
 
+fn current_player_life(state: &State) -> Option<(i32, i32)> {
+    let player = <(&Player, &CombatStats)>::query().get(&state.world, state.player_entity);
+    player.map_or(None, |(_, combat_stats)| {
+        Some((combat_stats.hp, combat_stats.max_hp))
+    })
+}
+
 impl Into<PistonColor> for Color {
     fn into(self) -> PistonColor {
         [
@@ -353,5 +372,38 @@ impl Console {
                 }
             }
         }
+    }
+}
+
+struct StatBar {
+    name: String,
+    current: u32,
+    max: u32,
+    color: Color,
+}
+
+impl StatBar {
+    fn render(&self, graphics: &mut G2d, context: Context, origin: (i32, i32)) {
+        let max_width = (GRID_SIZE * 10) as f64;
+        let origin_x = (origin.0 * GRID_SIZE as i32) as f64;
+        let origin_y = (origin.1 * GRID_SIZE as i32) as f64;
+        let ratio = self.current as f64 / self.max as f64;
+        graphics::rectangle(
+            self.color.into(),
+            [origin_x, origin_y, max_width * ratio, GRID_SIZE as f64],
+            context.transform,
+            graphics,
+        );
+        graphics::rectangle(
+            self.color.darker().into(),
+            [
+                origin_x + max_width * ratio,
+                origin_y,
+                max_width * (1.0 - ratio),
+                GRID_SIZE as f64,
+            ],
+            context.transform,
+            graphics,
+        );
     }
 }

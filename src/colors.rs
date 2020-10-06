@@ -32,11 +32,20 @@ impl Color {
         let b = (rgb & 0xff) as u8;
         Color { a, r, g, b }
     }
+
+    pub fn darker(self: Self) -> Self {
+        Color {
+            a: self.a,
+            r: (self.r as f32 * 0.75).round() as u8,
+            g: (self.g as f32 * 0.75).round() as u8,
+            b: (self.b as f32 * 0.75).round() as u8,
+        }
+    }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::colors::Color;
+    use crate::colors::{Color, DARK_RED};
 
     #[test]
     fn color_from_argb() {
@@ -64,6 +73,21 @@ mod tests {
                 r: 0x12,
                 g: 0x34,
                 b: 0x56
+            }
+        )
+    }
+
+    #[test]
+    fn darker() {
+        let color = DARK_RED.darker();
+
+        assert_eq!(
+            color,
+            Color {
+                a: 255,
+                r: 143,
+                g: 0,
+                b: 0
             }
         )
     }
