@@ -2,7 +2,7 @@ use crate::colors::DARK_RED;
 use crate::components::*;
 use crate::game::RunState;
 use crate::map::Map;
-use crate::resources::PlayerInfo;
+use crate::resources::SharedInfo;
 use field_of_vision::FovMap;
 use legion::component;
 use legion::system;
@@ -14,36 +14,34 @@ use legion::Schedule;
 
 pub fn game_schedule() -> Schedule {
     Schedule::builder()
-        .add_system(monster_move_system())
+        .add_system(monster_action_system())
         .flush()
         .add_system(attack_actions_system())
-        .add_system(cleanup_deads_system())
-        .flush()
         .add_system(move_actions_system())
         .flush()
+        .add_system(cleanup_deads_system())
         .add_system(update_map_and_position_system())
-        .add_system(check_game_lost_system())
-        .flush()
+        .add_system(update_game_state_system())
         .build()
 }
 
 #[system(for_each)]
 #[filter(!component::<Player>())]
 #[read_component(Player)]
-pub fn monster_move(
+pub fn monster_action(
     cmd: &mut CommandBuffer,
     body: &Body,
     _: &Monster,
     _: &CombatStats,
     entity: &Entity,
-    #[resource] player_info: &PlayerInfo,
+    #[resource] shared_info: &SharedInfo,
     #[resource] run_state: &RunState,
     #[resource] fov: &FovMap,
 ) {
-    if run_state.clone() != RunState::AiTurn {
+    if *run_state != RunState::AiTurn {
         return;
     }
-    let player_position = player_info.position;
+    let player_position = shared_info.player_position;
     let distance = body.distance_to(player_position);
     if fov.is_in_fov(body.x as isize, body.y as isize) {
         println!("The {} sees you.", body.name);
@@ -63,7 +61,7 @@ pub fn monster_move(
             // Attack!
             let attack_action = AttackAction {
                 attacker_entity: entity.clone(),
-                target_entity: player_info.entity.clone(),
+                target_entity: shared_info.player_entity.clone(),
             };
             cmd.push((attack_action,));
         }
@@ -76,7 +74,7 @@ pub fn monster_move(
 pub fn update_map_and_position(
     world: &mut SubWorld,
     #[resource] map: &mut Map,
-    #[resource] player_info: &mut PlayerInfo,
+    #[resource] shared_info: &mut SharedInfo,
 ) {
     for (index, tile) in map.tiles.iter().enumerate() {
         map.blocked[index] = tile.blocking;
@@ -91,7 +89,7 @@ pub fn update_map_and_position(
     }
     let mut player_query = <(&Player, &Body)>::query();
     let (_, player_body) = player_query.iter(world).next().unwrap();
-    player_info.position = player_body.position();
+    shared_info.player_position = player_body.position();
 }
 
 #[system(for_each)]
@@ -132,15 +130,22 @@ pub fn attack_actions(
     move_action: &AttackAction,
     entity: &Entity,
 ) {
-    let (attacker_body, attacker_stats) = <(&Body, &CombatStats)>::query()
-        .get(world, move_action.attacker_entity)
-        .unwrap();
+    cmd.remove(*entity);
+
+    let attacker = <(&Body, &CombatStats)>::query().get(world, move_action.attacker_entity);
+    if attacker.is_err() {
+        return;
+    };
+    let (attacker_body, attacker_stats) = attacker.unwrap();
+
     let attacker_name = attacker_body.name.clone();
     let attacker_attack = attacker_stats.attack;
 
-    let (target_body, target_stats) = <(&Body, &mut CombatStats)>::query()
-        .get_mut(world, move_action.target_entity)
-        .unwrap();
+    let target = <(&Body, &mut CombatStats)>::query().get_mut(world, move_action.target_entity);
+    if target.is_err() {
+        return;
+    }
+    let (target_body, target_stats) = target.unwrap();
 
     let damage = attacker_attack - target_stats.defense;
 
@@ -157,8 +162,6 @@ pub fn attack_actions(
     }
 
     target_stats.hp = (target_stats.hp - damage).max(0);
-
-    cmd.remove(*entity);
 }
 
 #[system(for_each)]
@@ -182,10 +185,10 @@ pub fn cleanup_deads(
 
 #[system(for_each)]
 #[filter(component::<Player>())]
-pub fn check_game_lost(body: &mut Body, #[resource] player_info: &mut PlayerInfo) {
+pub fn update_game_state(body: &mut Body, #[resource] shared_info: &mut SharedInfo) {
     if body.char == '%' {
         // All is lost.
         println!("All is lost!!!");
-        player_info.alive = false;
+        shared_info.alive = false;
     }
 }

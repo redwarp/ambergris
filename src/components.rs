@@ -27,10 +27,14 @@ impl Body {
     }
 }
 
-pub struct Player;
+pub struct Player {
+    pub speed: u32,
+}
 
 pub struct Monster {
     pub ai: Ai,
+    pub speed: u32,
+    pub tick: i32,
 }
 
 pub struct MoveAction {

@@ -1,6 +1,4 @@
-use graphics::character::Character;
 use graphics::character::CharacterCache;
-use graphics::ImageSize;
 use legion::*;
 use piston_window::PistonWindow;
 use piston_window::*;
@@ -83,7 +81,7 @@ impl Engine {
 
         let mut schedule = systems::game_schedule();
 
-        let mut previous_position = state.resources.get::<PlayerInfo>().unwrap().position;
+        let mut previous_position = state.resources.get::<SharedInfo>().unwrap().player_position;
 
         let mut pending_button = None;
 
@@ -117,7 +115,7 @@ impl Engine {
 
                 state.resources.insert(new_run_state);
 
-                let updated_position = state.resources.get::<PlayerInfo>().unwrap().position;
+                let updated_position = state.resources.get::<SharedInfo>().unwrap().player_position;
 
                 self.prepare_console(state, previous_position != updated_position);
 

@@ -27,7 +27,15 @@ fn spawn_orc_body(x: i32, y: i32) -> (Monster, Body, CombatStats) {
         defense: 1,
         attack: 3,
     };
-    (Monster { ai: Ai::Basic }, body, combat_stats)
+    (
+        Monster {
+            ai: Ai::Basic,
+            speed: 900,
+            tick: 0,
+        },
+        body,
+        combat_stats,
+    )
 }
 
 fn spawn_troll_body(x: i32, y: i32) -> (Monster, Body, CombatStats) {
@@ -45,12 +53,20 @@ fn spawn_troll_body(x: i32, y: i32) -> (Monster, Body, CombatStats) {
         defense: 1,
         attack: 6,
     };
-    (Monster { ai: Ai::Basic }, body, combat_stats)
+    (
+        Monster {
+            ai: Ai::Basic,
+            speed: 1100,
+            tick: 0,
+        },
+        body,
+        combat_stats,
+    )
 }
 
 pub fn spawn_player(x: i32, y: i32) -> (Player, Body, CombatStats) {
     (
-        Player,
+        Player { speed: 1000 },
         Body {
             name: "player".into(),
             x,

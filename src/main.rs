@@ -1,7 +1,7 @@
 use crate::game::State;
 use crate::map::Map;
 use crate::pistonengine::Engine as PistonEngine;
-use crate::resources::PlayerInfo;
+use crate::resources::SharedInfo;
 
 use field_of_vision::FovMap;
 use legion::{Resources, World};
@@ -34,15 +34,11 @@ fn main() {
         resources,
         player_entity,
     };
-    state.resources.insert(PlayerInfo {
-        entity: player_entity,
-        position: (-1, -1),
+    state.resources.insert(SharedInfo {
+        player_entity: player_entity,
+        player_position: (-1, -1),
         alive: true,
     });
-
-    // let mut renderer = Engine::new(SCREEN_WIDTH, SCREEN_HEIGHT);
-
-    // renderer.run(&mut state);
 
     let mut renderer = PistonEngine::new("Ambergris", SCREEN_WIDTH, SCREEN_HEIGHT);
     renderer.run(&mut state);
