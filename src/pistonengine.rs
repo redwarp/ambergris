@@ -96,7 +96,7 @@ impl Engine {
                 let new_run_state = match previous_state {
                     RunState::Init => {
                         schedule.execute(&mut state.world, &mut state.resources);
-                        RunState::WaitForInput
+                        RunState::WaitForPlayerInput
                     }
                     RunState::PlayerTurn => {
                         schedule.execute(&mut state.world, &mut state.resources);
@@ -104,13 +104,21 @@ impl Engine {
                     }
                     RunState::AiTurn => {
                         schedule.execute(&mut state.world, &mut state.resources);
-                        RunState::WaitForInput
+                        let alive = state
+                            .resources
+                            .get::<SharedInfo>()
+                            .map_or(false, |player_info| player_info.alive);
+                        if alive {
+                            RunState::WaitForPlayerInput
+                        } else {
+                            RunState::Death
+                        }
                     }
-                    RunState::WaitForInput => {
-                        self.consume_button(pending_button.take(), state, &previous_state)
+                    RunState::WaitForPlayerInput => {
+                        self.consume_player_button(pending_button.take(), state)
                     }
                     RunState::Exit => break,
-                    RunState::Death => RunState::WaitForInput,
+                    RunState::Death => self.consume_death_button(pending_button.take()),
                 };
 
                 state.resources.insert(new_run_state);
@@ -198,16 +206,21 @@ impl Engine {
         }
     }
 
-    fn consume_button(
-        &self,
-        button: Option<Button>,
-        state: &mut State,
-        run_state: &RunState,
-    ) -> RunState {
-        if *run_state == RunState::Death {
-            return RunState::WaitForInput;
+    fn consume_death_button(&self, button: Option<Button>) -> RunState {
+        if let Some(button) = button {
+            match button {
+                Button::Keyboard(key) => match key {
+                    Key::Escape => RunState::Exit,
+                    _ => RunState::Death,
+                },
+                _ => RunState::Death,
+            }
+        } else {
+            RunState::Death
         }
+    }
 
+    fn consume_player_button(&self, button: Option<Button>, state: &mut State) -> RunState {
         if let Some(button) = button {
             match button {
                 Button::Keyboard(key) => match key {
@@ -229,12 +242,12 @@ impl Engine {
                     }
                     Key::Escape => RunState::Exit,
                     Key::Space => RunState::PlayerTurn,
-                    _ => RunState::WaitForInput,
+                    _ => RunState::WaitForPlayerInput,
                 },
-                _ => RunState::WaitForInput,
+                _ => RunState::WaitForPlayerInput,
             }
         } else {
-            RunState::WaitForInput
+            RunState::WaitForPlayerInput
         }
     }
 }

@@ -61,7 +61,7 @@ impl State {
 #[derive(PartialEq, Clone, Debug)]
 pub enum RunState {
     Init,
-    WaitForInput,
+    WaitForPlayerInput,
     PlayerTurn,
     AiTurn,
     Exit,
