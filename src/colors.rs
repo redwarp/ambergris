@@ -3,6 +3,7 @@ pub const DARKER_GREEN: Color = Color::new(255, 0, 127, 0);
 pub const YELLOW: Color = Color::new(255, 255, 255, 0);
 pub const DESATURATED_GREEN: Color = Color::new(255, 63, 127, 63);
 pub const DARK_RED: Color = Color::new(255, 191, 0, 0);
+pub const WHITE: Color = Color::from_rgb(0xffffff);
 
 #[derive(Copy, Clone, PartialEq, Debug)]
 pub struct Color {

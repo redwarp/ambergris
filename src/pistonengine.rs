@@ -1,4 +1,4 @@
-use crate::colors::{Color, BLACK};
+use crate::colors::{Color, BLACK, WHITE};
 use crate::components::CombatStats;
 use crate::game::{RunState, State};
 use crate::resources::*;
@@ -9,6 +9,7 @@ use crate::{
 };
 use field_of_vision::FovMap;
 use graphics::character::CharacterCache;
+use graphics_buffer::BufferGlyphs;
 use legion::*;
 use piston_window::types::Color as PistonColor;
 use piston_window::*;
@@ -245,7 +246,7 @@ impl Engine {
 
     fn take_screenshot(&self, state: &State) {
         let now = std::time::Instant::now();
-        let mut glyph_cache = graphics_buffer::BufferGlyphs::new(
+        let mut glyph_cache = BufferGlyphs::new(
             FONT_NAME,
             (),
             TextureSettings::new().filter(Filter::Nearest),
@@ -284,7 +285,7 @@ impl Engine {
                 current: hp as u32,
                 max: max_hp as u32,
             };
-            health_bar.render(graphics, context, (1, 1));
+            health_bar.render(graphics, glyph_cache, context, (1, self.height as i32 - 3));
         }
     }
 }
@@ -413,11 +414,34 @@ struct StatBar {
 }
 
 impl StatBar {
-    fn render<G: Graphics>(&self, graphics: &mut G, context: Context, origin: (i32, i32)) {
+    fn render<C, G>(
+        &self,
+        graphics: &mut G,
+        glyph_cache: &mut C,
+        context: Context,
+        origin: (i32, i32),
+    ) where
+        C: CharacterCache,
+        G: Graphics<Texture = <C as CharacterCache>::Texture>,
+    {
+        let text = format!("{} [{}/{}]", self.name, self.current, self.max);
         let max_width = (GRID_SIZE * 10) as f64;
         let origin_x = (origin.0 * GRID_SIZE as i32) as f64;
-        let origin_y = (origin.1 * GRID_SIZE as i32) as f64;
+        let text_origin_y = (origin.1 as f64 + 0.7) * GRID_SIZE as f64;
+        let origin_y = ((origin.1 + 1) * GRID_SIZE as i32) as f64;
         let ratio = self.current as f64 / self.max as f64;
+
+        graphics::text(
+            WHITE.into(),
+            GRID_SIZE,
+            text.as_str(),
+            glyph_cache,
+            context.transform.trans(origin_x, text_origin_y),
+            graphics,
+        )
+        .ok()
+        .unwrap();
+
         graphics::rectangle(
             self.color.into(),
             [origin_x, origin_y, max_width * ratio, GRID_SIZE as f64],
