@@ -1,3 +1,5 @@
+use std::time::Instant;
+
 use crate::colors::{Color, BLACK, WHITE};
 use crate::components::CombatStats;
 use crate::game::{RunState, State};
@@ -14,7 +16,7 @@ use legion::*;
 use piston_window::types::Color as PistonColor;
 use piston_window::*;
 
-const GRID_SIZE: u32 = 16;
+const GRID_SIZE: u32 = 14;
 
 const COLOR_DARK_WALL: Color = Color {
     a: 255,
@@ -245,7 +247,7 @@ impl Engine {
     }
 
     fn take_screenshot(&self, state: &State) {
-        let now = std::time::Instant::now();
+        let now = Instant::now();
         let mut glyph_cache = BufferGlyphs::new(
             FONT_NAME,
             (),
@@ -269,6 +271,7 @@ impl Engine {
     {
         let player_life = current_player_life(state);
         clear(BLACK.into(), graphics);
+
         self.console.render(
             graphics,
             context,
@@ -354,7 +357,7 @@ impl Console {
         &self,
         graphics: &mut G,
         context: Context,
-        glyphs: &mut C,
+        glyph_cache: &mut C,
         (origin_x, origin_y): (i32, i32),
         (origin_width, origin_height): (i32, i32),
         (destination_x, destination_y): (i32, i32),
@@ -373,13 +376,17 @@ impl Console {
                 );
                 if let Some(color) = self.background[(x + y * self.width) as usize] {
                     let color: PistonColor = color.into();
-
-                    let square = graphics::rectangle::square(draw_x, draw_y, GRID_SIZE as f64);
-                    graphics::rectangle(color, square, context.transform, graphics);
+                    let square = graphics::rectangle::square(0.0, 0.0, GRID_SIZE as f64);
+                    graphics::rectangle(
+                        color,
+                        square,
+                        context.transform.trans(draw_x, draw_y),
+                        graphics,
+                    );
                 }
 
                 if let Some((glyph, color)) = self.foreground[(x + y * self.width) as usize] {
-                    let character = glyphs
+                    let character = glyph_cache
                         .character(GRID_SIZE, glyph)
                         .ok()
                         .expect("Could not get glyph");
@@ -391,7 +398,7 @@ impl Console {
                     text::Text::new_color(color.into(), GRID_SIZE)
                         .draw(
                             &format!("{}", glyph),
-                            glyphs,
+                            glyph_cache,
                             &context.draw_state,
                             context
                                 .transform
