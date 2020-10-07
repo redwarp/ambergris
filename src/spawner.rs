@@ -24,7 +24,7 @@ fn spawn_orc_body(x: i32, y: i32) -> (Monster, Body, CombatStats) {
     let combat_stats = CombatStats {
         max_hp: 12,
         hp: 12,
-        defense: 1,
+        defense: 0,
         attack: 3,
     };
     (
@@ -51,7 +51,7 @@ fn spawn_troll_body(x: i32, y: i32) -> (Monster, Body, CombatStats) {
         max_hp: 20,
         hp: 20,
         defense: 1,
-        attack: 6,
+        attack: 4,
     };
     (
         Monster {

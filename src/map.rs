@@ -127,7 +127,7 @@ pub fn make_map(world: &mut World, rng: &mut StdRng) -> Map {
             } else {
                 let (prev_x, prev_y) = rooms[rooms.len() - 1].center();
 
-                if rand::random() {
+                if rng.gen::<bool>() {
                     create_horizontal_tunnel(prev_x, new_x, prev_y, &mut map);
                     create_vertical_tunnel(prev_y, new_y, new_x, &mut map);
                 } else {
@@ -136,7 +136,10 @@ pub fn make_map(world: &mut World, rng: &mut StdRng) -> Map {
                 }
             }
 
-            place_objects(world, rng, &map, &new_room);
+            if !rooms.is_empty() {
+                // Let's be cool and not put any monsters in the room.
+                place_objects(world, rng, &map, &new_room);
+            }
 
             rooms.push(new_room);
         }
@@ -171,7 +174,7 @@ fn place_objects(world: &mut World, rng: &mut StdRng, map: &Map, room: &Rect) {
         let y = rng.gen_range(room.y1 + 1, room.y2);
 
         if !map.is_blocked((x, y)) {
-            let monster_type = if rand::random::<f32>() < 0.8 {
+            let monster_type = if rng.gen::<f32>() < 0.8 {
                 MonsterType::Orc
             } else {
                 MonsterType::Troll
