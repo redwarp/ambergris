@@ -1,9 +1,3 @@
-use graphics::character::CharacterCache;
-use legion::*;
-use piston_window::PistonWindow;
-use piston_window::*;
-use piston_window::{types::Color as PistonColor, WindowSettings};
-
 use crate::colors::{Color, BLACK};
 use crate::components::CombatStats;
 use crate::game::{RunState, State};
@@ -14,6 +8,10 @@ use crate::{
     map::Map,
 };
 use field_of_vision::FovMap;
+use graphics::character::CharacterCache;
+use legion::*;
+use piston_window::types::Color as PistonColor;
+use piston_window::*;
 
 const GRID_SIZE: u32 = 16;
 
@@ -42,6 +40,7 @@ const COLOR_LIGHT_GROUND: Color = Color {
     b: 50,
 };
 const TORCH_RADIUS: isize = 10;
+const FONT_NAME: &str = "CourierPrime-Regular.ttf";
 
 pub struct Engine {
     title: String,
@@ -73,12 +72,8 @@ impl Engine {
 
         let texture_settings = TextureSettings::new().filter(Filter::Nearest);
         let texture_context = window.create_texture_context();
-        let mut glyphs = Glyphs::new(
-            "CourierPrime-Regular.ttf",
-            texture_context,
-            texture_settings,
-        )
-        .expect("Couldn't load the font.");
+        let mut glyphs = Glyphs::new(FONT_NAME, texture_context, texture_settings)
+            .expect("Couldn't load the font.");
 
         let mut schedule = systems::game_schedule();
 
@@ -89,6 +84,10 @@ impl Engine {
         while let Some(event) = events.next(&mut window) {
             if let Some(button) = event.press_args() {
                 pending_button = Some(button);
+
+                if let Some(Button::Keyboard(Key::P)) = pending_button {
+                    self.take_screenshot(state);
+                }
             }
 
             if let Some(_args) = event.update_args() {
@@ -132,29 +131,10 @@ impl Engine {
             };
 
             if let Some(_args) = event.render_args() {
-                let player_life = current_player_life(state);
-
                 window.draw_2d(&event, |context, graphics, device| {
-                    clear(BLACK.into(), graphics);
-                    self.console.render(
-                        graphics,
-                        context,
-                        &mut glyphs,
-                        (0, 0),
-                        (self.console.width, self.console.height),
-                        (0, 0),
-                    );
-                    glyphs.factory.encoder.flush(device);
+                    self.render(state, graphics, context, &mut glyphs);
 
-                    if let Some((hp, max_hp)) = player_life {
-                        let health_bar = StatBar {
-                            name: String::from("Health"),
-                            color: crate::colors::DARK_RED,
-                            current: hp as u32,
-                            max: max_hp as u32,
-                        };
-                        health_bar.render(graphics, context, (1, 1));
-                    }
+                    glyphs.factory.encoder.flush(device);
                 });
             };
         }
@@ -262,6 +242,44 @@ impl Engine {
             RunState::WaitForPlayerInput
         }
     }
+
+    fn take_screenshot(&self, state: &State) {
+        let mut glyph_cache =
+            graphics_buffer::buffer_glyphs_from_path(FONT_NAME).expect("Couldn't load the font");
+        let mut buffer =
+            graphics_buffer::RenderBuffer::new(self.width * GRID_SIZE, self.height * GRID_SIZE);
+        let context = Context::new();
+        self.render(state, &mut buffer, context, &mut glyph_cache);
+
+        buffer.save("screenshot.png").ok();
+    }
+
+    fn render<G, C>(&self, state: &State, graphics: &mut G, context: Context, glyph_cache: &mut C)
+    where
+        C: CharacterCache,
+        G: Graphics<Texture = <C as CharacterCache>::Texture>,
+    {
+        let player_life = current_player_life(state);
+        clear(BLACK.into(), graphics);
+        self.console.render(
+            graphics,
+            context,
+            glyph_cache,
+            (0, 0),
+            (self.console.width, self.console.height),
+            (0, 0),
+        );
+
+        if let Some((hp, max_hp)) = player_life {
+            let health_bar = StatBar {
+                name: String::from("Health"),
+                color: crate::colors::DARK_RED,
+                current: hp as u32,
+                max: max_hp as u32,
+            };
+            health_bar.render(graphics, context, (1, 1));
+        }
+    }
 }
 
 fn current_player_life(state: &State) -> Option<(i32, i32)> {
@@ -324,15 +342,18 @@ impl Console {
         self.foreground[(x + y * self.width) as usize] = Some((glyph, color.into()));
     }
 
-    fn render(
+    fn render<C, G>(
         &self,
-        graphics: &mut G2d,
+        graphics: &mut G,
         context: Context,
-        glyphs: &mut Glyphs,
+        glyphs: &mut C,
         (origin_x, origin_y): (i32, i32),
         (origin_width, origin_height): (i32, i32),
         (destination_x, destination_y): (i32, i32),
-    ) {
+    ) where
+        C: CharacterCache,
+        G: Graphics<Texture = <C as CharacterCache>::Texture>,
+    {
         let dx = destination_x - origin_x;
         let dy = destination_y - origin_y;
 
@@ -352,6 +373,7 @@ impl Console {
                 if let Some((glyph, color)) = self.foreground[(x + y * self.width) as usize] {
                     let character = glyphs
                         .character(GRID_SIZE, glyph)
+                        .ok()
                         .expect("Could not get glyph");
                     let font_adjust_x =
                         character.left() + (GRID_SIZE as f64 - character.atlas_size[0]) / 2.0;
@@ -368,6 +390,7 @@ impl Console {
                                 .trans(draw_x + font_adjust_x, draw_y + font_adjust_y),
                             graphics,
                         )
+                        .ok()
                         .expect("Could not draw glyph");
                 }
             }
@@ -383,7 +406,7 @@ struct StatBar {
 }
 
 impl StatBar {
-    fn render(&self, graphics: &mut G2d, context: Context, origin: (i32, i32)) {
+    fn render<G: Graphics>(&self, graphics: &mut G, context: Context, origin: (i32, i32)) {
         let max_width = (GRID_SIZE * 10) as f64;
         let origin_x = (origin.0 * GRID_SIZE as i32) as f64;
         let origin_y = (origin.1 * GRID_SIZE as i32) as f64;

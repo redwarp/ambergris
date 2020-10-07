@@ -35,6 +35,7 @@ name = "ambergris"
 version = "0.1.0"
 dependencies = [
  "field_of_vision",
+ "graphics_buffer",
  "legion",
  "piston2d-graphics",
  "piston_window",
@@ -967,6 +968,20 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3da5951a1569dbab865c6f2a863efafff193a93caf05538d193e9e3816d21696"
 dependencies = [
  "gl_generator 0.14.0",
+]
+
+[[package]]
+name = "graphics_buffer"
+version = "0.7.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0a7d9fb1fa0082edf3664426c427e3933ca497d75394604e772cf64cf32660d2"
+dependencies = [
+ "bit-vec",
+ "image",
+ "piston-texture",
+ "piston2d-graphics",
+ "png",
+ "rayon",
 ]
 
 [[package]]
