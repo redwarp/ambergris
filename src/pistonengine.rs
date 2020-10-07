@@ -244,14 +244,21 @@ impl Engine {
     }
 
     fn take_screenshot(&self, state: &State) {
-        let mut glyph_cache =
-            graphics_buffer::buffer_glyphs_from_path(FONT_NAME).expect("Couldn't load the font");
+        let now = std::time::Instant::now();
+        let mut glyph_cache = graphics_buffer::BufferGlyphs::new(
+            FONT_NAME,
+            (),
+            TextureSettings::new().filter(Filter::Nearest),
+        )
+        .expect("Couldn't load the font.");
         let mut buffer =
             graphics_buffer::RenderBuffer::new(self.width * GRID_SIZE, self.height * GRID_SIZE);
         let context = Context::new();
         self.render(state, &mut buffer, context, &mut glyph_cache);
 
         buffer.save("screenshot.png").ok();
+
+        println!("Taking screenshot took {} ms", now.elapsed().as_millis());
     }
 
     fn render<G, C>(&self, state: &State, graphics: &mut G, context: Context, glyph_cache: &mut C)
