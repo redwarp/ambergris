@@ -4,6 +4,7 @@ use crate::pistonengine::Engine as PistonEngine;
 use crate::resources::SharedInfo;
 
 use field_of_vision::FovMap;
+use game::Journal;
 use legion::{Resources, World};
 use rand::rngs::StdRng;
 use rand::SeedableRng;
@@ -28,8 +29,11 @@ fn main() {
     let player_entity = world.push(spawner::spawn_player(-1, -1));
     let map = crate::map::make_map(&mut world, &mut rng);
     let fov = make_fov(&map);
+    let mut journal = Journal::new();
+    journal.add("Welcome to Ambergris");
     resources.insert(map);
     resources.insert(fov);
+    resources.insert(journal);
     let mut state = State {
         world,
         resources,

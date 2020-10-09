@@ -1,10 +1,13 @@
 use std::time::Instant;
 
-use crate::colors::{Color, BLACK, WHITE};
 use crate::components::CombatStats;
 use crate::game::{RunState, State};
 use crate::resources::*;
 use crate::systems;
+use crate::{
+    colors::{Color, BLACK, WHITE},
+    game::Journal,
+};
 use crate::{
     components::{Body, Player},
     map::Map,
@@ -289,6 +292,29 @@ impl Engine {
                 max: max_hp as u32,
             };
             health_bar.render(graphics, glyph_cache, context, (1, self.height as i32 - 3));
+        }
+
+        let logs = state.resources.get::<Journal>().unwrap();
+        let mut y = self.height as i32 - 7;
+        for log in logs.get_entries() {
+            if y > self.height as i32 - 2 {
+                break;
+            }
+
+            crate::renderer::draw_text(
+                2,
+                y,
+                50,
+                WHITE.into(),
+                GRID_SIZE,
+                log,
+                glyph_cache,
+                context,
+                graphics,
+            )
+            .ok();
+
+            y += 1;
         }
     }
 }

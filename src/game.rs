@@ -1,3 +1,5 @@
+use std::collections::VecDeque;
+
 use crate::components::*;
 use crate::map::Map;
 use legion::Entity;
@@ -26,7 +28,10 @@ impl State {
 
         let mut enemies = <(Entity, &Body, &Monster, &CombatStats)>::query();
 
-        println!("Looking for enemies");
+        self.resources
+            .get_mut::<Journal>()
+            .unwrap()
+            .add("Looking for enemies");
         let mut attack_action = None;
         for (entity, body, _, _) in enemies.iter(&self.world) {
             let body: &Body = body; // That seems to help.
@@ -66,4 +71,27 @@ pub enum RunState {
     AiTurn,
     Exit,
     Death,
+}
+
+pub struct Journal {
+    entries: VecDeque<String>,
+}
+
+impl Journal {
+    pub fn new() -> Self {
+        Journal {
+            entries: VecDeque::with_capacity(16),
+        }
+    }
+
+    pub fn add<S: Into<String>>(&mut self, entry: S) {
+        self.entries.push_front(entry.into());
+        while self.entries.len() > 10 {
+            self.entries.pop_back();
+        }
+    }
+
+    pub fn get_entries(&self) -> &VecDeque<String> {
+        &self.entries
+    }
 }
