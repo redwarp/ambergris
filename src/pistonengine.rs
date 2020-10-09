@@ -16,7 +16,7 @@ use legion::*;
 use piston_window::types::Color as PistonColor;
 use piston_window::*;
 
-const GRID_SIZE: u32 = 14;
+const GRID_SIZE: u32 = 15;
 
 const COLOR_DARK_WALL: Color = Color {
     a: 255,
@@ -370,43 +370,30 @@ impl Console {
 
         for x in origin_x..origin_width {
             for y in origin_y..origin_height {
-                let (draw_x, draw_y) = (
-                    ((x + dx) * GRID_SIZE as i32) as f64,
-                    ((y + dy) * GRID_SIZE as i32) as f64,
-                );
                 if let Some(color) = self.background[(x + y * self.width) as usize] {
                     let color: PistonColor = color.into();
-                    let square = graphics::rectangle::square(0.0, 0.0, GRID_SIZE as f64);
-                    graphics::rectangle(
+                    crate::renderer::draw_square(
+                        x + dx,
+                        y + dy,
                         color,
-                        square,
-                        context.transform.trans(draw_x, draw_y),
+                        GRID_SIZE,
+                        context,
                         graphics,
                     );
                 }
 
                 if let Some((glyph, color)) = self.foreground[(x + y * self.width) as usize] {
-                    let character = glyph_cache
-                        .character(GRID_SIZE, glyph)
-                        .ok()
-                        .expect("Could not get glyph");
-                    let font_adjust_x =
-                        character.left() + (GRID_SIZE as f64 - character.atlas_size[0]) / 2.0;
-                    let font_adjust_y =
-                        character.top() + (GRID_SIZE as f64 - character.atlas_size[1]) / 2.0;
-
-                    text::Text::new_color(color.into(), GRID_SIZE)
-                        .draw(
-                            &format!("{}", glyph),
-                            glyph_cache,
-                            &context.draw_state,
-                            context
-                                .transform
-                                .trans(draw_x + font_adjust_x, draw_y + font_adjust_y),
-                            graphics,
-                        )
-                        .ok()
-                        .expect("Could not draw glyph");
+                    crate::renderer::draw_char(
+                        x + dx,
+                        y + dy,
+                        color.into(),
+                        GRID_SIZE,
+                        glyph,
+                        glyph_cache,
+                        context,
+                        graphics,
+                    )
+                    .ok();
                 }
             }
         }
@@ -431,23 +418,11 @@ impl StatBar {
         C: CharacterCache,
         G: Graphics<Texture = <C as CharacterCache>::Texture>,
     {
-        let text = format!("{} [{}/{}]", self.name, self.current, self.max);
-        let max_width = (GRID_SIZE * 10) as f64;
+        let text = format!("{} ({}/{})", self.name, self.current, self.max);
+        let max_width = (GRID_SIZE * 16) as f64;
         let origin_x = (origin.0 * GRID_SIZE as i32) as f64;
-        let text_origin_y = (origin.1 as f64 + 0.7) * GRID_SIZE as f64;
         let origin_y = ((origin.1 + 1) * GRID_SIZE as i32) as f64;
         let ratio = self.current as f64 / self.max as f64;
-
-        graphics::text(
-            WHITE.into(),
-            GRID_SIZE,
-            text.as_str(),
-            glyph_cache,
-            context.transform.trans(origin_x, text_origin_y),
-            graphics,
-        )
-        .ok()
-        .unwrap();
 
         graphics::rectangle(
             self.color.into(),
@@ -466,5 +441,18 @@ impl StatBar {
             context.transform,
             graphics,
         );
+
+        crate::renderer::draw_text(
+            origin.0,
+            origin.1,
+            0,
+            WHITE.into(),
+            GRID_SIZE,
+            &text.as_str(),
+            glyph_cache,
+            context,
+            graphics,
+        )
+        .ok();
     }
 }

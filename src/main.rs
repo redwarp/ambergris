@@ -12,6 +12,7 @@ mod components;
 mod game;
 mod map;
 mod pistonengine;
+mod renderer;
 mod resources;
 mod spawner;
 mod systems;
