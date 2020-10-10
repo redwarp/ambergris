@@ -14,6 +14,7 @@ const ROOM_MAX_SIZE: i32 = 10;
 const ROOM_MIN_SIZE: i32 = 6;
 const MAX_ROOM: i32 = 30;
 const MAX_ROOM_MONSTERS: i32 = 3;
+const MAX_ROOM_ITEMS: i32 = 3;
 
 pub type Position = (i32, i32);
 
@@ -179,7 +180,18 @@ fn place_objects(world: &mut World, rng: &mut StdRng, map: &Map, room: &Rect) {
             } else {
                 MonsterType::Troll
             };
-            world.push(spawner::spawn_monster(monster_type, x, y));
+            world.push(spawner::monster(monster_type, x, y));
+        }
+    }
+
+    let num_items = rng.gen_range(0, MAX_ROOM_ITEMS);
+    for _ in 0..num_items {
+        let x = rng.gen_range(room.x1 + 1, room.x2);
+        let y = rng.gen_range(room.y1 + 1, room.y2);
+
+        if !map.is_blocked((x, y)) {
+            let item = spawner::potion(x, y);
+            world.push(item);
         }
     }
 }

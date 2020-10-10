@@ -26,7 +26,7 @@ fn main() {
     let mut rng = StdRng::seed_from_u64(42);
     let mut world = World::default();
     let mut resources = Resources::default();
-    let player_entity = world.push(spawner::spawn_player(-1, -1));
+    let player_entity = world.push(spawner::player(-1, -1));
     let map = crate::map::make_map(&mut world, &mut rng);
     let fov = make_fov(&map);
     let journal = Journal::new();

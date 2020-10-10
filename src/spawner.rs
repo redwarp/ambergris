@@ -1,25 +1,25 @@
-use crate::{components::*, game::Ai};
+use crate::{colors, components::*, game::Ai};
 
 pub enum MonsterType {
     Orc,
     Troll,
 }
 
-pub fn spawn_monster(monster_type: MonsterType, x: i32, y: i32) -> (Monster, Body, CombatStats) {
+pub fn monster(monster_type: MonsterType, x: i32, y: i32) -> (Monster, Body, CombatStats) {
     match monster_type {
-        MonsterType::Orc => spawn_orc_body(x, y),
-        MonsterType::Troll => spawn_troll_body(x, y),
+        MonsterType::Orc => orc(x, y),
+        MonsterType::Troll => troll(x, y),
     }
 }
 
-fn spawn_orc_body(x: i32, y: i32) -> (Monster, Body, CombatStats) {
+fn orc(x: i32, y: i32) -> (Monster, Body, CombatStats) {
     let body = Body {
         name: "orc".into(),
         x,
         y,
         blocking: true,
         char: 'o',
-        color: crate::colors::DESATURATED_GREEN,
+        color: colors::DESATURATED_GREEN,
     };
     let combat_stats = CombatStats {
         max_hp: 12,
@@ -38,14 +38,14 @@ fn spawn_orc_body(x: i32, y: i32) -> (Monster, Body, CombatStats) {
     )
 }
 
-fn spawn_troll_body(x: i32, y: i32) -> (Monster, Body, CombatStats) {
+fn troll(x: i32, y: i32) -> (Monster, Body, CombatStats) {
     let body = Body {
         name: "troll".into(),
         x,
         y,
         blocking: true,
         char: 'T',
-        color: crate::colors::DARKER_GREEN,
+        color: colors::DARKER_GREEN,
     };
     let combat_stats = CombatStats {
         max_hp: 20,
@@ -64,16 +64,16 @@ fn spawn_troll_body(x: i32, y: i32) -> (Monster, Body, CombatStats) {
     )
 }
 
-pub fn spawn_player(x: i32, y: i32) -> (Player, Body, CombatStats) {
+pub fn player(x: i32, y: i32) -> (Player, Body, CombatStats) {
     (
         Player { speed: 1000 },
         Body {
-            name: "player".into(),
+            name: "player".to_string(),
             x,
             y,
             blocking: true,
             char: '@',
-            color: crate::colors::YELLOW,
+            color: colors::YELLOW,
         },
         CombatStats {
             max_hp: 30,
@@ -81,5 +81,20 @@ pub fn spawn_player(x: i32, y: i32) -> (Player, Body, CombatStats) {
             attack: 5,
             defense: 2,
         },
+    )
+}
+
+pub fn potion(x: i32, y: i32) -> (Item, Body, ProvidesHealing) {
+    (
+        Item {},
+        Body {
+            name: "potion".to_string(),
+            x,
+            y,
+            blocking: false,
+            char: 'i',
+            color: colors::PURPLE,
+        },
+        ProvidesHealing { heal_amount: 5 },
     )
 }

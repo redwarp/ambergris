@@ -18,6 +18,7 @@ pub fn game_schedule() -> Schedule {
         .flush()
         .add_system(attack_actions_system())
         .add_system(move_actions_system())
+        .add_system(item_collection_system())
         .flush()
         .add_system(cleanup_deads_system())
         .add_system(update_map_and_position_system())
@@ -197,4 +198,35 @@ pub fn update_game_state(
         journal.log("All is lost!!!");
         shared_info.alive = false;
     }
+}
+
+#[system(for_each)]
+#[read_component(Body)]
+pub fn item_collection(
+    cmd: &mut CommandBuffer,
+    world: &mut SubWorld,
+    action: &PickupItemAction,
+    entity: &Entity,
+    #[resource] journal: &mut Journal,
+) {
+    let in_inventory = InInventory {
+        owner: action.collected_by,
+    };
+    cmd.add_component(action.item, in_inventory);
+
+    let collector_name = <&Body>::query()
+        .get(world, action.collected_by)
+        .map(|body| body.name.clone());
+    let item_name = <&Body>::query()
+        .get(world, action.item)
+        .map(|body| body.name.clone());
+
+    if let (Ok(collector_name), Ok(item_name)) = (collector_name, item_name) {
+        journal.log(format!(
+            "The {} picks up the {}.",
+            collector_name, item_name
+        ));
+    }
+
+    cmd.remove(*entity);
 }

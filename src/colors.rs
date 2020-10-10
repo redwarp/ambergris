@@ -5,6 +5,8 @@ pub const DESATURATED_GREEN: Color = Color::new(255, 63, 127, 63);
 pub const DARK_RED: Color = Color::new(255, 191, 0, 0);
 pub const WHITE: Color = Color::from_rgb(0xffffff);
 pub const DARK_GREY: Color = Color::from_argb(0xff222222);
+pub const MAGENTA: Color = Color::from_rgb(0xff00ff);
+pub const PURPLE: Color = Color::from_rgb(0x800080);
 
 #[derive(Copy, Clone, PartialEq, Debug)]
 pub struct Color {

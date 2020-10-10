@@ -6,6 +6,7 @@ use legion::Entity;
 use legion::IntoQuery;
 use legion::Resources;
 use legion::World;
+use legion::*;
 
 pub struct State {
     pub world: World,
@@ -55,6 +56,35 @@ impl State {
                 };
             }
         }
+    }
+
+    pub fn grab_item(&mut self) -> bool {
+        let position = <&Body>::query()
+            .get(&self.world, self.player_entity)
+            .map(|body| body.position())
+            .unwrap();
+
+        let mut pickup_item_action = None;
+        let mut grabbed_item = false;
+
+        <(&Body, Entity)>::query()
+            .filter(!component::<InInventory>())
+            .for_each(&self.world, |(body, entity): (&Body, &Entity)| {
+                if body.position() == position {
+                    // We can grab!
+                    pickup_item_action = Some((PickupItemAction {
+                        collected_by: self.player_entity,
+                        item: *entity,
+                    },));
+                    grabbed_item = true;
+                }
+            });
+
+        if let Some(pickup_item_action) = pickup_item_action {
+            self.world.push(pickup_item_action);
+        }
+
+        grabbed_item
     }
 
     pub fn log<T: Into<String>>(&self, text: T) {

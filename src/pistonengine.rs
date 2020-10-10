@@ -9,7 +9,7 @@ use crate::{
     game::Journal,
 };
 use crate::{
-    components::{Body, Player},
+    components::{Body, InInventory, Player},
     map::Map,
 };
 use field_of_vision::FovMap;
@@ -160,7 +160,7 @@ impl Engine {
 
         let fov = state.resources.get::<FovMap>().unwrap();
 
-        let mut query = <&Body>::query();
+        let mut query = <&Body>::query().filter(!component::<InInventory>());
         let mut bodies: Vec<_> = query.iter(&state.world).collect();
         bodies.sort_by(|&body_0, &body_1| body_0.blocking.cmp(&body_1.blocking));
         for body in bodies {
@@ -245,6 +245,13 @@ impl Engine {
                     Key::D | Key::Right => {
                         state.move_player(1, 0);
                         RunState::PlayerTurn
+                    }
+                    Key::G => {
+                        if state.grab_item() {
+                            RunState::PlayerTurn
+                        } else {
+                            RunState::WaitForPlayerInput
+                        }
                     }
                     Key::Escape => RunState::Exit,
                     Key::Space => RunState::PlayerTurn,

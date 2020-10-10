@@ -54,3 +54,18 @@ pub struct CombatStats {
     pub defense: i32,
     pub attack: i32,
 }
+
+pub struct Item {}
+
+pub struct ProvidesHealing {
+    pub heal_amount: i32,
+}
+
+pub struct InInventory {
+    pub owner: Entity,
+}
+
+pub struct PickupItemAction {
+    pub collected_by: Entity,
+    pub item: Entity,
+}
