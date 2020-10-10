@@ -58,17 +58,21 @@ where
     C: CharacterCache,
     G: Graphics<Texture = <C as CharacterCache>::Texture>,
 {
-    let mut x = x;
+    let mut x = x as f64;
     let font_size = (grid_size as f64 * 0.9) as u32;
 
     // Get tallest char for vertical centering.
     let i = glyph_cache.character(font_size, 'I')?;
     let i_font_top = i.top() + (grid_size as f64 - i.atlas_size[1]) / 2.0;
 
-    for ch in text.chars() {
+    for (index, ch) in text.chars().enumerate() {
         let character = glyph_cache.character(font_size, ch)?;
         let font_adjust_x = (grid_size as f64 - character.atlas_size[0]) / 2.0;
         let font_adjust_y = i_font_top - character.top();
+
+        if index == 0 {
+            x = x as f64 * grid_size as f64 + font_adjust_x;
+        }
 
         let mut image = Image::new_color(color);
 
@@ -81,14 +85,13 @@ where
         image.draw(
             character.texture,
             &Default::default(),
-            context.transform.trans(
-                x as f64 * grid_size as f64 + font_adjust_x,
-                y as f64 * grid_size as f64 + font_adjust_y,
-            ),
+            context
+                .transform
+                .trans(x, y as f64 * grid_size as f64 + font_adjust_y),
             graphics,
         );
 
-        x += 1;
+        x += character.advance_width();
     }
 
     Ok(())
