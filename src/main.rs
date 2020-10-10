@@ -19,8 +19,8 @@ mod spawner;
 mod systems;
 
 // actual size of the window
-const SCREEN_WIDTH: u32 = 80;
-const SCREEN_HEIGHT: u32 = 50;
+const SCREEN_WIDTH: i32 = 80;
+const SCREEN_HEIGHT: i32 = 50;
 
 fn main() {
     let mut rng = StdRng::seed_from_u64(42);

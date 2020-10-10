@@ -19,7 +19,7 @@ use legion::*;
 use piston_window::types::Color as PistonColor;
 use piston_window::*;
 
-const GRID_SIZE: u32 = 15;
+const GRID_SIZE: u32 = 16;
 
 const COLOR_DARK_WALL: Color = Color {
     a: 255,
@@ -50,25 +50,30 @@ const FONT_NAME: &str = "CourierPrime-Regular.ttf";
 
 pub struct Engine {
     title: String,
-    width: u32,
-    height: u32,
+    width: i32,
+    height: i32,
     console: Console,
+    hud: Hud,
 }
 
 impl Engine {
-    pub fn new<T: Into<String>>(title: T, width: u32, height: u32) -> Self {
+    pub fn new<T: Into<String>>(title: T, width: i32, height: i32) -> Self {
         Engine {
             title: title.into(),
             width,
             height,
             console: Console::new(1, 1),
+            hud: Hud::new(width, height),
         }
     }
 
     pub fn run(&mut self, state: &mut State) {
         let mut window: PistonWindow = WindowSettings::new(
             &self.title,
-            (self.width * GRID_SIZE, self.height * GRID_SIZE),
+            (
+                self.width as u32 * GRID_SIZE,
+                self.height as u32 * GRID_SIZE,
+            ),
         )
         .exit_on_esc(false)
         .resizable(false)
@@ -132,6 +137,9 @@ impl Engine {
                 let updated_position = state.resources.get::<SharedInfo>().unwrap().player_position;
 
                 self.prepare_console(state, previous_position != updated_position);
+
+                let (current, max) = current_player_life(state).unwrap_or((0, 0));
+                self.hud.health_bar.update(current, max);
 
                 previous_position = updated_position;
             };
@@ -257,8 +265,10 @@ impl Engine {
             TextureSettings::new().filter(Filter::Nearest),
         )
         .expect("Couldn't load the font.");
-        let mut buffer =
-            graphics_buffer::RenderBuffer::new(self.width * GRID_SIZE, self.height * GRID_SIZE);
+        let mut buffer = graphics_buffer::RenderBuffer::new(
+            self.width as u32 * GRID_SIZE,
+            self.height as u32 * GRID_SIZE,
+        );
         let context = Context::new();
         self.render(state, &mut buffer, context, &mut glyph_cache);
 
@@ -284,15 +294,7 @@ impl Engine {
             (0, 0),
         );
 
-        if let Some((hp, max_hp)) = player_life {
-            let health_bar = StatBar {
-                name: String::from("Health"),
-                color: crate::colors::DARK_RED,
-                current: hp as u32,
-                max: max_hp as u32,
-            };
-            health_bar.render(graphics, glyph_cache, context, (1, self.height as i32 - 3));
-        }
+        self.hud.render(graphics, glyph_cache, context);
 
         let logs = state.resources.get::<Journal>().unwrap();
         let mut y = self.height as i32 - 7;
@@ -428,12 +430,17 @@ impl Console {
 
 struct StatBar {
     name: String,
-    current: u32,
-    max: u32,
+    current: i32,
+    max: i32,
     color: Color,
 }
 
 impl StatBar {
+    fn update(&mut self, current: i32, max: i32) {
+        self.current = current.max(0);
+        self.max = max;
+    }
+
     fn render<C, G>(
         &self,
         graphics: &mut G,
@@ -444,6 +451,10 @@ impl StatBar {
         C: CharacterCache,
         G: Graphics<Texture = <C as CharacterCache>::Texture>,
     {
+        if self.max <= 0 {
+            return;
+        }
+
         let text = format!("{} ({}/{})", self.name, self.current, self.max);
         let max_width = (GRID_SIZE * 16) as f64;
         let origin_x = (origin.0 * GRID_SIZE as i32) as f64;
@@ -480,5 +491,36 @@ impl StatBar {
             graphics,
         )
         .ok();
+    }
+}
+
+struct Hud {
+    width: i32,
+    height: i32,
+    health_bar: StatBar,
+}
+
+impl Hud {
+    pub fn new(width: i32, height: i32) -> Self {
+        Hud {
+            width,
+            height,
+            health_bar: StatBar {
+                name: String::from("Health"),
+                color: crate::colors::DARK_RED,
+                current: 0,
+                max: 0,
+            },
+        }
+    }
+
+    fn render<C, G>(&self, graphics: &mut G, glyph_cache: &mut C, context: Context)
+    where
+        C: CharacterCache,
+        G: Graphics<Texture = <C as CharacterCache>::Texture>,
+    {
+        let health_bar_y = self.height - 9;
+        self.health_bar
+            .render(graphics, glyph_cache, context, (2, health_bar_y));
     }
 }
