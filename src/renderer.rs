@@ -109,3 +109,21 @@ pub fn draw_square<G>(
     let square = graphics::rectangle::square(0.0, 0.0, grid_size as f64);
     graphics::rectangle(color, square, context.transform.trans(x, y), graphics);
 }
+
+pub fn draw_rectangle<G>(
+    origin: (i32, i32),
+    size: (i32, i32),
+    color: [ColorComponent; 4],
+    grid_size: u32,
+    context: Context,
+    graphics: &mut G,
+) where
+    G: Graphics,
+{
+    let x = origin.0 as f64 * grid_size as f64;
+    let y = origin.1 as f64 * grid_size as f64;
+    let width = size.0 as f64 * grid_size as f64;
+    let height = size.1 as f64 * grid_size as f64;
+
+    graphics::rectangle(color, [x, y, width, height], context.transform, graphics);
+}

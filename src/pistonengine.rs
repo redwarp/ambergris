@@ -1,9 +1,9 @@
 use std::time::Instant;
 
-use crate::components::CombatStats;
 use crate::game::{RunState, State};
 use crate::resources::*;
 use crate::systems;
+use crate::{colors::DARK_GREY, components::CombatStats};
 use crate::{
     colors::{Color, BLACK, WHITE},
     game::Journal,
@@ -282,42 +282,19 @@ impl Engine {
         C: CharacterCache,
         G: Graphics<Texture = <C as CharacterCache>::Texture>,
     {
-        let player_life = current_player_life(state);
         clear(BLACK.into(), graphics);
 
         self.console.render(
-            graphics,
-            context,
-            glyph_cache,
             (0, 0),
             (self.console.width, self.console.height),
-            (0, 0),
+            (0, 3),
+            glyph_cache,
+            context,
+            graphics,
         );
 
-        self.hud.render(graphics, glyph_cache, context);
-
-        let logs = state.resources.get::<Journal>().unwrap();
-        let mut y = self.height as i32 - 7;
-        for log in logs.get_entries() {
-            if y > self.height as i32 - 2 {
-                break;
-            }
-
-            crate::renderer::draw_text(
-                2,
-                y,
-                50,
-                WHITE.into(),
-                GRID_SIZE,
-                log,
-                glyph_cache,
-                context,
-                graphics,
-            )
-            .ok();
-
-            y += 1;
-        }
+        let journal = state.resources.get::<Journal>().unwrap();
+        self.hud.render(&journal, glyph_cache, context, graphics);
     }
 }
 
@@ -383,12 +360,12 @@ impl Console {
 
     fn render<C, G>(
         &self,
-        graphics: &mut G,
-        context: Context,
-        glyph_cache: &mut C,
         (origin_x, origin_y): (i32, i32),
         (origin_width, origin_height): (i32, i32),
         (destination_x, destination_y): (i32, i32),
+        glyph_cache: &mut C,
+        context: Context,
+        graphics: &mut G,
     ) where
         C: CharacterCache,
         G: Graphics<Texture = <C as CharacterCache>::Texture>,
@@ -456,9 +433,9 @@ impl StatBar {
         }
 
         let text = format!("{} ({}/{})", self.name, self.current, self.max);
-        let max_width = (GRID_SIZE * 16) as f64;
+        let max_width = (GRID_SIZE * 10) as f64;
         let origin_x = (origin.0 * GRID_SIZE as i32) as f64;
-        let origin_y = ((origin.1 + 1) * GRID_SIZE as i32) as f64;
+        let origin_y = (origin.1 * GRID_SIZE as i32) as f64;
         let ratio = self.current as f64 / self.max as f64;
 
         graphics::rectangle(
@@ -480,7 +457,7 @@ impl StatBar {
         );
 
         crate::renderer::draw_text(
-            origin.0,
+            origin.0 + 11,
             origin.1,
             0,
             WHITE.into(),
@@ -514,13 +491,57 @@ impl Hud {
         }
     }
 
-    fn render<C, G>(&self, graphics: &mut G, glyph_cache: &mut C, context: Context)
-    where
+    fn render<C, G>(
+        &self,
+        journal: &Journal,
+        glyph_cache: &mut C,
+        context: Context,
+        graphics: &mut G,
+    ) where
         C: CharacterCache,
         G: Graphics<Texture = <C as CharacterCache>::Texture>,
     {
-        let health_bar_y = self.height - 9;
+        crate::renderer::draw_rectangle(
+            (0, 0),
+            (self.width, 3),
+            DARK_GREY.into(),
+            GRID_SIZE,
+            context,
+            graphics,
+        );
+
+        crate::renderer::draw_rectangle(
+            (0, self.height - 7),
+            (self.width, 7),
+            DARK_GREY.into(),
+            GRID_SIZE,
+            context,
+            graphics,
+        );
+
         self.health_bar
-            .render(graphics, glyph_cache, context, (2, health_bar_y));
+            .render(graphics, glyph_cache, context, (1, 1));
+
+        let mut y = self.height as i32 - 6;
+        for log in journal.get_entries() {
+            if y > self.height as i32 - 2 {
+                break;
+            }
+
+            crate::renderer::draw_text(
+                1,
+                y,
+                50,
+                WHITE.into(),
+                GRID_SIZE,
+                log,
+                glyph_cache,
+                context,
+                graphics,
+            )
+            .ok();
+
+            y += 1;
+        }
     }
 }

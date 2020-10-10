@@ -75,19 +75,22 @@ pub enum RunState {
 }
 
 pub struct Journal {
+    /// The maximum amount of entries to keep in memory.
+    size: usize,
     entries: VecDeque<String>,
 }
 
 impl Journal {
     pub fn new() -> Self {
         Journal {
-            entries: VecDeque::with_capacity(16),
+            size: 10,
+            entries: VecDeque::with_capacity(12),
         }
     }
 
     pub fn log<S: Into<String>>(&mut self, entry: S) {
         self.entries.push_front(entry.into());
-        while self.entries.len() > 10 {
+        while self.entries.len() > self.size {
             self.entries.pop_back();
         }
     }

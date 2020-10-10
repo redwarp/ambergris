@@ -9,7 +9,7 @@ use rand::rngs::StdRng;
 use rand::Rng;
 
 const MAP_WIDTH: i32 = 80;
-const MAP_HEIGHT: i32 = 43;
+const MAP_HEIGHT: i32 = 40;
 const ROOM_MAX_SIZE: i32 = 10;
 const ROOM_MIN_SIZE: i32 = 6;
 const MAX_ROOM: i32 = 30;
