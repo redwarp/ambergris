@@ -28,16 +28,11 @@ impl State {
 
         let mut enemies = <(Entity, &Body, &Monster, &CombatStats)>::query();
 
-        self.resources
-            .get_mut::<Journal>()
-            .unwrap()
-            .add("Looking for enemies");
         let mut attack_action = None;
         for (entity, body, _, _) in enemies.iter(&self.world) {
             let body: &Body = body; // That seems to help.
             if body.position() == position {
                 // We can attack a monster!
-                println!("Let's attack the {}", body.name);
                 attack_action = Some(AttackAction {
                     attacker_entity: self.player_entity,
                     target_entity: entity.clone(),
@@ -59,6 +54,12 @@ impl State {
                     },));
                 };
             }
+        }
+    }
+
+    pub fn log<T: Into<String>>(&self, text: T) {
+        if let Some(mut journal) = self.resources.get_mut::<Journal>() {
+            journal.log(text);
         }
     }
 }
@@ -84,7 +85,7 @@ impl Journal {
         }
     }
 
-    pub fn add<S: Into<String>>(&mut self, entry: S) {
+    pub fn log<S: Into<String>>(&mut self, entry: S) {
         self.entries.push_front(entry.into());
         while self.entries.len() > 10 {
             self.entries.pop_back();

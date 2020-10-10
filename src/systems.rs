@@ -1,8 +1,8 @@
-use crate::colors::DARK_RED;
 use crate::components::*;
 use crate::game::RunState;
 use crate::map::Map;
 use crate::resources::SharedInfo;
+use crate::{colors::DARK_RED, game::Journal};
 use field_of_vision::FovMap;
 use legion::component;
 use legion::system;
@@ -129,6 +129,7 @@ pub fn attack_actions(
     world: &mut SubWorld,
     move_action: &AttackAction,
     entity: &Entity,
+    #[resource] journal: &mut Journal,
 ) {
     cmd.remove(*entity);
 
@@ -145,20 +146,20 @@ pub fn attack_actions(
     if target.is_err() {
         return;
     }
-    let (target_body, target_stats) = target.unwrap();
+    let (target_body, target_stats): (&Body, &mut CombatStats) = target.unwrap();
 
     let damage = attacker_attack - target_stats.defense;
 
     if damage > 0 {
-        println!(
+        journal.log(format!(
             "The {} attacks the {} for {} damage.",
             attacker_name, target_body.name, damage
-        );
+        ));
     } else {
-        println!(
+        journal.log(format!(
             "The {} is too weak to damage the {}.",
             attacker_name, target_body.name
-        );
+        ));
     }
 
     target_stats.hp = (target_stats.hp - damage).max(0);
@@ -170,10 +171,11 @@ pub fn cleanup_deads(
     entity: &Entity,
     body: &mut Body,
     combat_stats: &CombatStats,
+    #[resource] journal: &mut Journal,
 ) {
     if combat_stats.hp == 0 {
         // We found a cadaver!
-        println!("The {} is dead.", body.name);
+        journal.log(format!("The {} is dead.", body.name));
 
         body.char = '%';
         body.color = DARK_RED;
@@ -185,10 +187,14 @@ pub fn cleanup_deads(
 
 #[system(for_each)]
 #[filter(component::<Player>())]
-pub fn update_game_state(body: &mut Body, #[resource] shared_info: &mut SharedInfo) {
+pub fn update_game_state(
+    body: &mut Body,
+    #[resource] shared_info: &mut SharedInfo,
+    #[resource] journal: &mut Journal,
+) {
     if body.char == '%' {
         // All is lost.
-        println!("All is lost!!!");
+        journal.log("All is lost!!!");
         shared_info.alive = false;
     }
 }

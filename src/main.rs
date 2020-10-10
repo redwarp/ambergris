@@ -29,21 +29,21 @@ fn main() {
     let player_entity = world.push(spawner::spawn_player(-1, -1));
     let map = crate::map::make_map(&mut world, &mut rng);
     let fov = make_fov(&map);
-    let mut journal = Journal::new();
-    journal.add("Welcome to Ambergris");
+    let journal = Journal::new();
     resources.insert(map);
     resources.insert(fov);
     resources.insert(journal);
+    resources.insert(SharedInfo {
+        player_entity: player_entity,
+        player_position: (-1, -1),
+        alive: true,
+    });
     let mut state = State {
         world,
         resources,
         player_entity,
     };
-    state.resources.insert(SharedInfo {
-        player_entity: player_entity,
-        player_position: (-1, -1),
-        alive: true,
-    });
+    state.log("Welcome to Ambergris");
 
     let mut renderer = PistonEngine::new("Ambergris", SCREEN_WIDTH, SCREEN_HEIGHT);
     renderer.run(&mut state);
