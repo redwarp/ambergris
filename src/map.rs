@@ -3,6 +3,7 @@ use crate::{
     spawner::{self, MonsterType},
 };
 
+use legion::component;
 use legion::IntoQuery;
 use legion::World;
 use rand::rngs::StdRng;
@@ -120,10 +121,10 @@ pub fn make_map(world: &mut World, rng: &mut StdRng) -> Map {
 
             let (new_x, new_y) = new_room.center();
             if rooms.is_empty() {
-                let mut query = <(&Player, &mut Body)>::query();
-                for (_, body) in query.iter_mut(world) {
-                    body.x = new_x;
-                    body.y = new_y;
+                let mut query = <&mut Coordinates>::query().filter(component::<Player>());
+                for coordinates in query.iter_mut(world) {
+                    coordinates.x = new_x;
+                    coordinates.y = new_y;
                 }
             } else {
                 let (prev_x, prev_y) = rooms[rooms.len() - 1].center();

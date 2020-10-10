@@ -20,19 +20,19 @@ pub enum Ai {
 
 impl State {
     pub fn move_player(&mut self, dx: i32, dy: i32) {
-        let body = <&Body>::query()
+        let coordinates = <&Coordinates>::query()
             .get(&self.world, self.player_entity)
             .unwrap();
 
-        let position = (body.x + dx, body.y + dy);
+        let position = (coordinates.x + dx, coordinates.y + dy);
         let map = self.resources.get::<Map>().unwrap();
 
-        let mut enemies = <(Entity, &Body, &Monster, &CombatStats)>::query();
+        let mut enemies = <(Entity, &Coordinates, &Monster, &CombatStats)>::query();
 
         let mut attack_action = None;
         for (entity, body, _, _) in enemies.iter(&self.world) {
-            let body: &Body = body; // That seems to help.
-            if body.position() == position {
+            let coordinates: &Coordinates = body; // That seems to help.
+            if coordinates.position() == position {
                 // We can attack a monster!
                 attack_action = Some(AttackAction {
                     attacker_entity: self.player_entity,
@@ -59,26 +59,29 @@ impl State {
     }
 
     pub fn grab_item(&mut self) -> bool {
-        let position = <&Body>::query()
+        let position = <&Coordinates>::query()
             .get(&self.world, self.player_entity)
-            .map(|body| body.position())
+            .map(|coordinates| coordinates.position())
             .unwrap();
 
         let mut pickup_item_action = None;
         let mut grabbed_item = false;
 
-        <(&Body, Entity)>::query()
+        <(&Coordinates, Entity)>::query()
             .filter(!component::<InInventory>())
-            .for_each(&self.world, |(body, entity): (&Body, &Entity)| {
-                if body.position() == position {
-                    // We can grab!
-                    pickup_item_action = Some((PickupItemAction {
-                        collected_by: self.player_entity,
-                        item: *entity,
-                    },));
-                    grabbed_item = true;
-                }
-            });
+            .for_each(
+                &self.world,
+                |(coordinates, entity): (&Coordinates, &Entity)| {
+                    if coordinates.position() == position {
+                        // We can grab!
+                        pickup_item_action = Some((PickupItemAction {
+                            collected_by: self.player_entity,
+                            item: *entity,
+                        },));
+                        grabbed_item = true;
+                    }
+                },
+            );
 
         if let Some(pickup_item_action) = pickup_item_action {
             self.world.push(pickup_item_action);

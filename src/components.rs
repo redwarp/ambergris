@@ -5,14 +5,25 @@ use legion::Entity;
 
 pub struct Body {
     pub name: String,
-    pub x: i32,
-    pub y: i32,
     pub blocking: bool,
     pub char: char,
     pub color: Color,
 }
 
-impl Body {
+pub struct Coordinates {
+    pub x: i32,
+    pub y: i32,
+}
+
+impl Coordinates {
+    pub fn new(x: i32, y: i32) -> Self {
+        Coordinates { x, y }
+    }
+
+    pub fn distance_to(&self, position: Position) -> f32 {
+        ((self.x - position.0).pow(2) as f32 + (self.y - position.1).pow(2) as f32).sqrt()
+    }
+
     pub fn position(&self) -> Position {
         (self.x, self.y)
     }
@@ -20,10 +31,6 @@ impl Body {
     pub fn set_position(&mut self, position: Position) {
         self.x = position.0;
         self.y = position.1;
-    }
-
-    pub fn distance_to(&self, position: Position) -> f32 {
-        ((self.x - position.0).pow(2) as f32 + (self.y - position.1).pow(2) as f32).sqrt()
     }
 }
 

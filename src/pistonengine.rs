@@ -1,6 +1,5 @@
 use std::time::Instant;
 
-use crate::game::{RunState, State};
 use crate::resources::*;
 use crate::systems;
 use crate::{colors::DARK_GREY, components::CombatStats};
@@ -9,7 +8,11 @@ use crate::{
     game::Journal,
 };
 use crate::{
-    components::{Body, InInventory, Player},
+    components::Coordinates,
+    game::{RunState, State},
+};
+use crate::{
+    components::{Body, Player},
     map::Map,
 };
 use field_of_vision::FovMap;
@@ -160,13 +163,14 @@ impl Engine {
 
         let fov = state.resources.get::<FovMap>().unwrap();
 
-        let mut query = <&Body>::query().filter(!component::<InInventory>());
+        let mut query = <(&Body, &Coordinates)>::query();
         let mut bodies: Vec<_> = query.iter(&state.world).collect();
-        bodies.sort_by(|&body_0, &body_1| body_0.blocking.cmp(&body_1.blocking));
-        for body in bodies {
-            if fov.is_in_fov(body.x as isize, body.y as isize) {
+        bodies.sort_by(|&(body_0, _), &(body_1, _)| body_0.blocking.cmp(&body_1.blocking));
+
+        for (body, coordinates) in bodies {
+            if fov.is_in_fov(coordinates.x as isize, coordinates.y as isize) {
                 self.console
-                    .set_foreground(body.x, body.y, body.char, body.color);
+                    .set_foreground(coordinates.x, coordinates.y, body.char, body.color);
             }
         }
     }
@@ -180,9 +184,9 @@ impl Engine {
         }
 
         if fov_recompute {
-            let mut query = <(&Player, &Body)>::query();
-            for (_, body) in query.iter(&state.world) {
-                fov.calculate_fov(body.x as isize, body.y as isize, TORCH_RADIUS);
+            let mut query = <&Coordinates>::query().filter(component::<Player>());
+            for coordinates in query.iter(&state.world) {
+                fov.calculate_fov(coordinates.x as isize, coordinates.y as isize, TORCH_RADIUS);
             }
         }
 

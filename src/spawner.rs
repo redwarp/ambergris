@@ -5,18 +5,20 @@ pub enum MonsterType {
     Troll,
 }
 
-pub fn monster(monster_type: MonsterType, x: i32, y: i32) -> (Monster, Body, CombatStats) {
+pub fn monster(
+    monster_type: MonsterType,
+    x: i32,
+    y: i32,
+) -> (Monster, Coordinates, Body, CombatStats) {
     match monster_type {
         MonsterType::Orc => orc(x, y),
         MonsterType::Troll => troll(x, y),
     }
 }
 
-fn orc(x: i32, y: i32) -> (Monster, Body, CombatStats) {
+fn orc(x: i32, y: i32) -> (Monster, Coordinates, Body, CombatStats) {
     let body = Body {
         name: "orc".into(),
-        x,
-        y,
         blocking: true,
         char: 'o',
         color: colors::DESATURATED_GREEN,
@@ -33,16 +35,15 @@ fn orc(x: i32, y: i32) -> (Monster, Body, CombatStats) {
             speed: 900,
             tick: 0,
         },
+        Coordinates::new(x, y),
         body,
         combat_stats,
     )
 }
 
-fn troll(x: i32, y: i32) -> (Monster, Body, CombatStats) {
+fn troll(x: i32, y: i32) -> (Monster, Coordinates, Body, CombatStats) {
     let body = Body {
         name: "troll".into(),
-        x,
-        y,
         blocking: true,
         char: 'T',
         color: colors::DARKER_GREEN,
@@ -59,18 +60,18 @@ fn troll(x: i32, y: i32) -> (Monster, Body, CombatStats) {
             speed: 1100,
             tick: 0,
         },
+        Coordinates { x, y },
         body,
         combat_stats,
     )
 }
 
-pub fn player(x: i32, y: i32) -> (Player, Body, CombatStats) {
+pub fn player(x: i32, y: i32) -> (Player, Coordinates, Body, CombatStats) {
     (
         Player { speed: 1000 },
+        Coordinates { x, y },
         Body {
             name: "player".to_string(),
-            x,
-            y,
             blocking: true,
             char: '@',
             color: colors::YELLOW,
@@ -84,13 +85,12 @@ pub fn player(x: i32, y: i32) -> (Player, Body, CombatStats) {
     )
 }
 
-pub fn potion(x: i32, y: i32) -> (Item, Body, ProvidesHealing) {
+pub fn potion(x: i32, y: i32) -> (Item, Coordinates, Body, ProvidesHealing) {
     (
         Item {},
+        Coordinates { x, y },
         Body {
             name: "potion".to_string(),
-            x,
-            y,
             blocking: false,
             char: 'i',
             color: colors::PURPLE,
