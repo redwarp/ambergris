@@ -105,6 +105,7 @@ pub enum RunState {
     AiTurn,
     Exit,
     Death,
+    ShowInventory,
 }
 
 pub struct Journal {

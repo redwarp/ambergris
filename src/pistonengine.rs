@@ -1,18 +1,9 @@
-use std::time::Instant;
-
-use crate::resources::*;
+use crate::resources::SharedInfo;
 use crate::systems;
-use crate::{colors::DARK_GREY, components::CombatStats};
 use crate::{
-    colors::{Color, BLACK, WHITE},
-    game::Journal,
-};
-use crate::{
-    components::Coordinates,
-    game::{RunState, State},
-};
-use crate::{
-    components::{Body, Player},
+    colors::{Color, BLACK, DARK_GREY, WHITE},
+    components::{Body, CombatStats, Coordinates, Player},
+    game::{Journal, RunState, State},
     map::Map,
 };
 use field_of_vision::FovMap;
@@ -21,6 +12,7 @@ use graphics_buffer::BufferGlyphs;
 use legion::*;
 use piston_window::types::Color as PistonColor;
 use piston_window::*;
+use std::time::Instant;
 
 const GRID_SIZE: u32 = 16;
 
@@ -49,7 +41,7 @@ const COLOR_LIGHT_GROUND: Color = Color {
     b: 50,
 };
 const TORCH_RADIUS: isize = 10;
-const FONT_NAME: &str = "CourierPrime-Regular.ttf";
+const FONT_NAME: &str = "fonts/CourierPrime-Regular.ttf";
 
 pub struct Engine {
     title: String,
@@ -82,6 +74,9 @@ impl Engine {
         .resizable(false)
         .build()
         .expect("Failed to initialize the window");
+
+        println!("{:?}", window.size());
+
         let mut events = Events::new(EventSettings::new().max_fps(30).ups(30));
 
         let texture_settings = TextureSettings::new().filter(Filter::Nearest);
@@ -133,6 +128,9 @@ impl Engine {
                     }
                     RunState::Exit => break,
                     RunState::Death => self.consume_death_button(pending_button.take()),
+                    RunState::ShowInventory => {
+                        self.consume_inventory_button(pending_button.take(), state)
+                    }
                 };
 
                 state.resources.insert(new_run_state);
@@ -257,6 +255,7 @@ impl Engine {
                             RunState::WaitForPlayerInput
                         }
                     }
+                    Key::I => RunState::ShowInventory,
                     Key::Escape => RunState::Exit,
                     Key::Space => RunState::PlayerTurn,
                     _ => RunState::WaitForPlayerInput,
@@ -266,6 +265,10 @@ impl Engine {
         } else {
             RunState::WaitForPlayerInput
         }
+    }
+
+    fn consume_inventory_button(&self, button: Option<Button>, state: &mut State) -> RunState {
+        RunState::WaitForPlayerInput
     }
 
     fn take_screenshot(&self, state: &State) {
