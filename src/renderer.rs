@@ -2,6 +2,10 @@ use graphics::{
     character::CharacterCache, types::ColorComponent, Context, Graphics, Image, Transformed,
 };
 
+use crate::colors::{Color, DARK_GREY, WHITE};
+
+const WINDOW_BACKGROUND_COLOR: Color = Color::from_argb(0xaa000000);
+
 /// Draw a character, and center it in the grid.
 pub fn draw_char<C, G>(
     x: i32,
@@ -129,4 +133,101 @@ pub fn draw_rectangle<G>(
     let height = size.1 as f64 * grid_size as f64;
 
     graphics::rectangle(color, [x, y, width, height], context.transform, graphics);
+}
+
+pub fn draw_window<G, C>(
+    origin: (i32, i32),
+    size: (i32, i32),
+    title: &str,
+    grid_size: u32,
+    glyph_cache: &mut C,
+    context: Context,
+    graphics: &mut G,
+) where
+    C: CharacterCache,
+    G: Graphics<Texture = <C as CharacterCache>::Texture>,
+{
+    draw_rectangle(
+        origin,
+        size,
+        WINDOW_BACKGROUND_COLOR.into(),
+        grid_size,
+        context,
+        graphics,
+    );
+
+    draw_text(
+        origin.0 + 1,
+        origin.1 + 1,
+        title.len() as u32,
+        WHITE.into(),
+        grid_size,
+        title,
+        glyph_cache,
+        context,
+        graphics,
+    )
+    .ok();
+
+    draw_border(
+        origin,
+        size,
+        Color::from_argb(0x33ffffff),
+        grid_size,
+        context,
+        graphics,
+    );
+}
+
+pub fn draw_border<G>(
+    origin: (i32, i32),
+    size: (i32, i32),
+    color: Color,
+    grid_size: u32,
+    context: Context,
+    graphics: &mut G,
+) where
+    G: Graphics,
+{
+    let x = origin.0 as f64 * grid_size as f64;
+    let y = origin.1 as f64 * grid_size as f64;
+    let width = size.0 as f64 * grid_size as f64;
+    let height = size.1 as f64 * grid_size as f64;
+    let radius = grid_size as f64 * 0.02;
+
+    graphics::line_from_to(
+        color.into(),
+        radius,
+        [x, y],
+        [x + width, y],
+        context.transform,
+        graphics,
+    );
+
+    graphics::line_from_to(
+        color.into(),
+        radius,
+        [x, y + height],
+        [x + width, y + height],
+        context.transform,
+        graphics,
+    );
+
+    graphics::line_from_to(
+        color.into(),
+        radius,
+        [x, y],
+        [x, y + height],
+        context.transform,
+        graphics,
+    );
+
+    graphics::line_from_to(
+        color.into(),
+        radius,
+        [x + width, y],
+        [x + width, y + height],
+        context.transform,
+        graphics,
+    );
 }

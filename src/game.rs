@@ -68,6 +68,7 @@ impl State {
         let mut grabbed_item = false;
 
         <(&Coordinates, Entity)>::query()
+            .filter(component::<Item>())
             .filter(!component::<InInventory>())
             .for_each(
                 &self.world,
@@ -97,7 +98,7 @@ impl State {
     }
 }
 
-#[derive(PartialEq, Clone, Debug)]
+#[derive(PartialEq, Copy, Clone, Debug)]
 pub enum RunState {
     Init,
     WaitForPlayerInput,

@@ -268,10 +268,17 @@ impl Engine {
     }
 
     fn consume_inventory_button(&self, button: Option<Button>, state: &mut State) -> RunState {
-        RunState::WaitForPlayerInput
+        if let Some(Button::Keyboard(key)) = button {
+            match key {
+                Key::Escape | Key::I => RunState::WaitForPlayerInput,
+                _ => RunState::ShowInventory,
+            }
+        } else {
+            RunState::ShowInventory
+        }
     }
 
-    fn take_screenshot(&self, state: &State) {
+    fn take_screenshot(&self, state: &mut State) {
         let now = Instant::now();
         let mut glyph_cache = BufferGlyphs::new(
             FONT_NAME,
@@ -297,6 +304,33 @@ impl Engine {
         G: Graphics<Texture = <C as CharacterCache>::Texture>,
     {
         clear(BLACK.into(), graphics);
+        let run_state = state
+            .resources
+            .get::<RunState>()
+            .map_or(RunState::Init, |fetched| *fetched);
+
+        match run_state {
+            RunState::ShowInventory => {
+                self.render_map_and_hud(state, graphics, context, glyph_cache);
+                self.render_inventory(state, graphics, context, glyph_cache);
+            }
+            _ => {
+                self.render_map_and_hud(state, graphics, context, glyph_cache);
+            }
+        }
+    }
+
+    fn render_map_and_hud<G, C>(
+        &self,
+        state: &State,
+        graphics: &mut G,
+        context: Context,
+        glyph_cache: &mut C,
+    ) where
+        C: CharacterCache,
+        G: Graphics<Texture = <C as CharacterCache>::Texture>,
+    {
+        clear(BLACK.into(), graphics);
 
         self.console.render(
             (0, 0),
@@ -309,6 +343,27 @@ impl Engine {
 
         let journal = state.resources.get::<Journal>().unwrap();
         self.hud.render(&journal, glyph_cache, context, graphics);
+    }
+
+    fn render_inventory<G, C>(
+        &self,
+        _state: &State,
+        graphics: &mut G,
+        context: Context,
+        glyph_cache: &mut C,
+    ) where
+        C: CharacterCache,
+        G: Graphics<Texture = <C as CharacterCache>::Texture>,
+    {
+        crate::renderer::draw_window(
+            (5, 5),
+            (self.width - 10, self.height - 10),
+            "Inventory",
+            GRID_SIZE,
+            glyph_cache,
+            context,
+            graphics,
+        );
     }
 }
 
@@ -536,9 +591,13 @@ impl Hud {
         self.health_bar
             .render(graphics, glyph_cache, context, (1, 1));
 
-        let mut y = self.height as i32 - 6;
+        let max_log = 5;
+        let log_count = (journal.get_entries().len() as i32).min(max_log);
+
+        let mut y = self.height as i32 - max_log + log_count - 2;
+
         for log in journal.get_entries() {
-            if y > self.height as i32 - 2 {
+            if y < self.height as i32 - max_log - 1 {
                 break;
             }
 
@@ -555,7 +614,7 @@ impl Hud {
             )
             .ok();
 
-            y += 1;
+            y -= 1;
         }
     }
 }
