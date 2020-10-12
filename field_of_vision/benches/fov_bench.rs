@@ -5,25 +5,25 @@ use rand::{rngs::StdRng, Rng, SeedableRng};
 use rltk::Algorithm2D;
 use tcod::Map;
 
-const WIDTH: isize = 45;
-const HEIGHT: isize = 45;
-const POSITION_X: isize = 22;
-const POSITION_Y: isize = 22;
-const RADIUS: isize = 12;
-const RANDOM_WALLS: isize = 10;
+const WIDTH: i32 = 45;
+const HEIGHT: i32 = 45;
+const POSITION_X: i32 = 22;
+const POSITION_Y: i32 = 22;
+const RADIUS: i32 = 12;
+const RANDOM_WALLS: i32 = 10;
 
 struct RltkMap {
-    width: isize,
-    height: isize,
+    width: i32,
+    height: i32,
     transparents: Vec<bool>,
 }
 
 impl RltkMap {
-    fn set_transparent(&mut self, x: isize, y: isize, transparent: bool) {
+    fn set_transparent(&mut self, x: i32, y: i32, transparent: bool) {
         self.transparents[(x + y * self.width) as usize] = transparent;
     }
 
-    fn compute_fov(&mut self, x: isize, y: isize, radius: isize) {
+    fn compute_fov(&mut self, x: i32, y: i32, radius: i32) {
         rltk::field_of_view((x as i32, y as i32).into(), radius as i32, self);
     }
 }

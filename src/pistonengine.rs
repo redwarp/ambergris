@@ -40,7 +40,7 @@ const COLOR_LIGHT_GROUND: Color = Color {
     g: 180,
     b: 50,
 };
-const TORCH_RADIUS: isize = 10;
+const TORCH_RADIUS: i32 = 10;
 const FONT_NAME: &str = "fonts/CourierPrime-Regular.ttf";
 
 pub struct Engine {
@@ -173,7 +173,7 @@ impl Engine {
         bodies.sort_by(|&(body_0, _), &(body_1, _)| body_0.blocking.cmp(&body_1.blocking));
 
         for (body, coordinates) in bodies {
-            if fov.is_in_fov(coordinates.x as isize, coordinates.y as isize) {
+            if fov.is_in_fov(coordinates.x, coordinates.y) {
                 self.console
                     .set_foreground(coordinates.x, coordinates.y, body.char, body.color);
             }
@@ -191,7 +191,7 @@ impl Engine {
         if fov_recompute {
             let mut query = <&Coordinates>::query().filter(component::<Player>());
             for coordinates in query.iter(&state.world) {
-                fov.calculate_fov(coordinates.x as isize, coordinates.y as isize, TORCH_RADIUS);
+                fov.calculate_fov(coordinates.x, coordinates.y, TORCH_RADIUS);
             }
         }
 
@@ -199,7 +199,7 @@ impl Engine {
         let map_height = map.height;
         for y in 0..map_height {
             for x in 0..map_width {
-                let visible = fov.is_in_fov(x as isize, y as isize);
+                let visible = fov.is_in_fov(x, y);
                 let wall = map.tiles[x as usize + y as usize * map_width as usize].block_sight;
                 let color = match (visible, wall) {
                     (false, true) => COLOR_DARK_WALL,

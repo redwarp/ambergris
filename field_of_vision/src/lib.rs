@@ -11,15 +11,15 @@ pub struct FovMap {
     /// Vector to store the computed field of vision.
     vision: Vec<bool>,
     /// The width of the map
-    width: isize,
+    width: i32,
     /// The height of the map
-    height: isize,
+    height: i32,
     /// The last position where the field of view was calculated. If never calculated, initialized to (-1, -1).
-    last_origin: (isize, isize),
+    last_origin: (i32, i32),
 }
 
 impl FovMap {
-    pub fn new(width: isize, height: isize) -> Self {
+    pub fn new(width: i32, height: i32) -> Self {
         if width <= 0 && height <= 0 {
             panic!(format!(
                 "Width and height should be > 0, got ({},{})",
@@ -36,19 +36,19 @@ impl FovMap {
     }
 
     /// Returns the dimension of the map.
-    pub fn size(&self) -> (isize, isize) {
+    pub fn size(&self) -> (i32, i32) {
         (self.width, self.height)
     }
 
     /// Flag a tile as transparent.
-    pub fn set_transparent(&mut self, x: isize, y: isize, is_transparent: bool) {
+    pub fn set_transparent(&mut self, x: i32, y: i32, is_transparent: bool) {
         self.assert_in_bounds(x, y);
         let index = self.index(x, y);
         self.transparent[index] = is_transparent;
     }
 
     /// Check whether a tile is transparent.
-    pub fn is_transparent(&self, x: isize, y: isize) -> bool {
+    pub fn is_transparent(&self, x: i32, y: i32) -> bool {
         self.assert_in_bounds(x, y);
         let index = self.index(x, y);
         self.transparent[index]
@@ -61,7 +61,7 @@ impl FovMap {
     /// * `x` - The x coordinate where the field of vision will be centered.
     /// * `y` - The x coordinate where the field of vision will be centered.
     /// * `radius` - How far the eye can see, in squares.
-    pub fn calculate_fov(&mut self, x: isize, y: isize, radius: isize) {
+    pub fn calculate_fov(&mut self, x: i32, y: i32, radius: i32) {
         let radius_square = radius.pow(2);
         self.assert_in_bounds(x, y);
         // Reset seen to false.
@@ -104,13 +104,13 @@ impl FovMap {
         self.post_process_vision(x + 1, miny, maxx, y - 1, -1, 1);
     }
 
-    pub fn is_in_fov(&self, x: isize, y: isize) -> bool {
+    pub fn is_in_fov(&self, x: i32, y: i32) -> bool {
         self.assert_in_bounds(x, y);
         let index = self.index(x, y);
         self.vision[index]
     }
 
-    fn assert_in_bounds(&self, x: isize, y: isize) {
+    fn assert_in_bounds(&self, x: i32, y: i32) {
         if x < 0 || y < 0 || x >= self.width || y >= self.height {
             panic!(format!(
                 "(x, y) should be between (0,0) and ({}, {}), got ({}, {})",
@@ -120,15 +120,15 @@ impl FovMap {
     }
 
     #[inline]
-    fn index(&self, x: isize, y: isize) -> usize {
+    fn index(&self, x: i32, y: i32) -> usize {
         (x + y * self.width) as usize
     }
 
     fn cast_ray_and_mark_visible(
         &mut self,
-        origin: (isize, isize),
-        destination: (isize, isize),
-        radius_square: isize,
+        origin: (i32, i32),
+        destination: (i32, i32),
+        radius_square: i32,
     ) {
         let (origin_x, origin_y) = origin;
         let bresenham = Bresenham::new(origin, destination).skip(1);
@@ -148,12 +148,12 @@ impl FovMap {
 
     fn post_process_vision(
         &mut self,
-        minx: isize,
-        miny: isize,
-        maxx: isize,
-        maxy: isize,
-        dx: isize,
-        dy: isize,
+        minx: i32,
+        miny: i32,
+        maxx: i32,
+        maxy: i32,
+        dx: i32,
+        dy: i32,
     ) {
         for x in minx..=maxx {
             for y in miny..=maxy {
@@ -220,16 +220,16 @@ impl Debug for FovMap {
 }
 
 pub trait Map {
-    fn dimensions(&self) -> (isize, isize);
-    fn is_transparent(&self, x: isize, y: isize) -> bool;
+    fn dimensions(&self) -> (i32, i32);
+    fn is_transparent(&self, x: i32, y: i32) -> bool;
 }
 
-fn is_bounded<M: Map>(map: &M, x: isize, y: isize) -> bool {
+fn is_bounded<M: Map>(map: &M, x: i32, y: i32) -> bool {
     let (width, height) = map.dimensions();
     x < 0 || y < 0 || x >= width || y >= height
 }
 
-fn assert_in_bounds<M: Map>(map: &M, x: isize, y: isize) {
+fn assert_in_bounds<M: Map>(map: &M, x: i32, y: i32) {
     let (width, height) = map.dimensions();
     if is_bounded(map, x, y) {
         panic!(format!(
@@ -239,12 +239,7 @@ fn assert_in_bounds<M: Map>(map: &M, x: isize, y: isize) {
     }
 }
 
-pub fn field_of_view<T: Map>(
-    map: &mut T,
-    x: isize,
-    y: isize,
-    radius: isize,
-) -> Vec<(isize, isize)> {
+pub fn field_of_view<T: Map>(map: &mut T, x: i32, y: i32, radius: i32) -> Vec<(i32, i32)> {
     let radius_square = radius.pow(2);
     assert_in_bounds(map, x, y);
 
@@ -383,8 +378,8 @@ pub fn field_of_view<T: Map>(
         .filter(|&(_index, visible)| *visible)
         .map(|(index, _)| {
             (
-                index as isize % sub_width + offset_x,
-                index as isize / sub_width + offset_y,
+                index as i32 % sub_width + offset_x,
+                index as i32 / sub_width + offset_y,
             )
         })
         .collect()
@@ -393,12 +388,12 @@ pub fn field_of_view<T: Map>(
 fn cast_ray<T: Map>(
     map: &T,
     visibles: &mut Vec<bool>,
-    width: isize,
-    origin: (isize, isize),
-    destination: (isize, isize),
-    radius_square: isize,
-    offset_x: isize,
-    offset_y: isize,
+    width: i32,
+    origin: (i32, i32),
+    destination: (i32, i32),
+    radius_square: i32,
+    offset_x: i32,
+    offset_y: i32,
 ) {
     let (origin_x, origin_y) = origin;
     let bresenham = Bresenham::new(origin, destination).skip(1);
@@ -418,15 +413,15 @@ fn cast_ray<T: Map>(
 fn post_process_vision<T: Map>(
     map: &T,
     visibles: &mut Vec<bool>,
-    width: isize,
-    minx: isize,
-    miny: isize,
-    maxx: isize,
-    maxy: isize,
-    dx: isize,
-    dy: isize,
-    offset_x: isize,
-    offset_y: isize,
+    width: i32,
+    minx: i32,
+    miny: i32,
+    maxx: i32,
+    maxy: i32,
+    dx: i32,
+    dy: i32,
+    offset_x: i32,
+    offset_y: i32,
 ) {
     for x in minx..=maxx {
         for y in miny..=maxy {
@@ -457,26 +452,26 @@ pub struct SampleMap {
     /// Vector to store the computed field of vision.
     vision: Vec<bool>,
     /// The width of the map
-    width: isize,
+    width: i32,
     /// The height of the map
-    height: isize,
+    height: i32,
     /// The last position where the field of view was calculated. If never calculated, initialized to (-1, -1).
-    last_origin: (isize, isize),
+    last_origin: (i32, i32),
 }
 
 impl Map for SampleMap {
-    fn dimensions(&self) -> (isize, isize) {
+    fn dimensions(&self) -> (i32, i32) {
         (self.width, self.height)
     }
 
-    fn is_transparent(&self, x: isize, y: isize) -> bool {
+    fn is_transparent(&self, x: i32, y: i32) -> bool {
         let index = (x + y * self.width) as usize;
         self.transparent[index]
     }
 }
 
 impl SampleMap {
-    pub fn new(width: isize, height: isize) -> Self {
+    pub fn new(width: i32, height: i32) -> Self {
         if width <= 0 && height <= 0 {
             panic!(format!(
                 "Width and height should be > 0, got ({},{})",
@@ -492,11 +487,11 @@ impl SampleMap {
         }
     }
     /// Flag a tile as transparent or visible.
-    pub fn set_transparent(&mut self, x: isize, y: isize, is_transparent: bool) {
+    pub fn set_transparent(&mut self, x: i32, y: i32, is_transparent: bool) {
         self.transparent[(x + y * self.width) as usize] = is_transparent;
     }
 
-    pub fn calculate_fov(&mut self, x: isize, y: isize, radius: isize) {
+    pub fn calculate_fov(&mut self, x: i32, y: i32, radius: i32) {
         for see in self.vision.iter_mut() {
             *see = false;
         }
@@ -561,12 +556,12 @@ mod test {
     use rand::Rng;
     use rand::SeedableRng;
 
-    const WIDTH: isize = 45;
-    const HEIGHT: isize = 45;
-    const POSITION_X: isize = 22;
-    const POSITION_Y: isize = 22;
-    const RADIUS: isize = 24;
-    const RANDOM_WALLS: isize = 10;
+    const WIDTH: i32 = 45;
+    const HEIGHT: i32 = 45;
+    const POSITION_X: i32 = 22;
+    const POSITION_Y: i32 = 22;
+    const RADIUS: i32 = 24;
+    const RANDOM_WALLS: i32 = 10;
 
     #[test]
     fn size() {

@@ -37,17 +37,17 @@
 use core::iter::Iterator;
 
 /// Convenient typedef for two machines-sized integers
-pub type Point = (isize, isize);
+pub type Point = (i32, i32);
 
 /// Line-drawing iterator
 pub struct Bresenham {
-    x: isize,
-    y: isize,
-    dx: isize,
-    dy: isize,
-    x1: isize,
-    y1: isize,
-    diff: isize,
+    x: i32,
+    y: i32,
+    dx: i32,
+    dy: i32,
+    x1: i32,
+    y1: i32,
+    diff: i32,
     octant: Octant,
 }
 

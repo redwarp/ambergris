@@ -51,13 +51,13 @@ fn main() {
 }
 
 fn make_fov(map: &Map) -> FovMap {
-    let mut fov = FovMap::new(map.width as isize, map.height as isize);
+    let mut fov = FovMap::new(map.width, map.height);
 
     for y in 0..map.height {
         for x in 0..map.width {
             fov.set_transparent(
-                x as isize,
-                y as isize,
+                x,
+                y,
                 !map.tiles[x as usize + y as usize * map.width as usize].block_sight,
             );
         }

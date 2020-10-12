@@ -45,7 +45,7 @@ pub fn monster_action(
     }
     let player_position = shared_info.player_position;
     let distance = coordinates.distance_to(player_position);
-    if fov.is_in_fov(coordinates.x as isize, coordinates.y as isize) {
+    if fov.is_in_fov(coordinates.x, coordinates.y) {
         println!("The {} sees you.", body.name);
         if distance >= 2.0 {
             let dx = player_position.0 - coordinates.x;
