@@ -1,4 +1,3 @@
-use crate::systems;
 use crate::{
     colors::{Color, BLACK, DARK_GREY, WHITE},
     components::{Body, CombatStats, Coordinates, Player},
@@ -6,6 +5,7 @@ use crate::{
     map::Map,
 };
 use crate::{inventory::Inventory, resources::SharedInfo};
+use crate::{palette::OVERLAY, systems};
 use field_of_vision::FovMap;
 use graphics::character::CharacterCache;
 use graphics_buffer::BufferGlyphs;
@@ -145,6 +145,7 @@ impl Engine {
                 let updated_position = state.resources.get::<SharedInfo>().unwrap().player_position;
 
                 self.prepare_console(state, previous_position != updated_position);
+                self.prepare_tooltip(state);
 
                 let (current, max) = current_player_life(state).unwrap_or((0, 0));
                 self.hud.health_bar.update(current, max);
@@ -176,6 +177,28 @@ impl Engine {
             if fov.is_in_fov(coordinates.x, coordinates.y) {
                 self.console
                     .set_foreground(coordinates.x, coordinates.y, body.char, body.color);
+            }
+        }
+    }
+
+    pub fn prepare_tooltip(&mut self, state: &mut State) {
+        self.hud.set_tooltip::<String>(None);
+
+        let x = self.mouse_position[0];
+        let y = self.mouse_position[1] - 3;
+        self.console.select(x, y);
+        let target_coordinates = Coordinates { x, y };
+
+        let fov = state.resources.get::<FovMap>().unwrap();
+        if !fov.is_in_bounds(x, y) || !fov.is_in_fov(x, y) {
+            // No tooltip for stuff we can't see!
+            return;
+        }
+
+        for (position, body) in <(&Coordinates, &Body)>::query().iter(&state.world) {
+            if target_coordinates == *position {
+                self.hud.set_tooltip(Some(body.name.clone()));
+                break;
             }
         }
     }
@@ -463,11 +486,21 @@ impl Console {
         for x in origin_x..origin_width {
             for y in origin_y..origin_height {
                 if let Some(color) = self.background[(x + y * self.width) as usize] {
-                    let color: PistonColor = color.into();
                     crate::renderer::draw_square(
                         x + dx,
                         y + dy,
-                        color,
+                        color.into(),
+                        GRID_SIZE,
+                        context,
+                        graphics,
+                    );
+                }
+
+                if self.selected[(x + y * self.width) as usize] == true {
+                    crate::renderer::draw_square(
+                        x + dx,
+                        y + dy,
+                        OVERLAY.into(),
                         GRID_SIZE,
                         context,
                         graphics,
@@ -562,6 +595,7 @@ struct Hud {
     width: i32,
     height: i32,
     health_bar: StatBar,
+    tooltip: Option<String>,
 }
 
 impl Hud {
@@ -575,7 +609,12 @@ impl Hud {
                 current: 0,
                 max: 0,
             },
+            tooltip: None,
         }
+    }
+
+    pub fn set_tooltip<S: Into<String>>(&mut self, tooltip: Option<S>) {
+        self.tooltip = tooltip.map(|tooltip| tooltip.into());
     }
 
     fn render<C, G>(
@@ -613,6 +652,21 @@ impl Hud {
         let log_count = (journal.get_entries().len() as i32).min(max_log);
 
         let mut y = self.height as i32 - max_log + log_count - 2;
+
+        if let Some(tooltip) = &self.tooltip {
+            crate::renderer::draw_text(
+                self.width / 2,
+                1,
+                10,
+                WHITE.into(),
+                GRID_SIZE,
+                tooltip.as_str(),
+                glyph_cache,
+                context,
+                graphics,
+            )
+            .ok();
+        }
 
         for log in journal.get_entries() {
             if y < self.height as i32 - max_log - 1 {

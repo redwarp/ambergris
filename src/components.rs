@@ -10,6 +10,7 @@ pub struct Body {
     pub color: Color,
 }
 
+#[derive(Debug, PartialEq)]
 pub struct Coordinates {
     pub x: i32,
     pub y: i32,

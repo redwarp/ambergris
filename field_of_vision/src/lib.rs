@@ -110,6 +110,10 @@ impl FovMap {
         self.vision[index]
     }
 
+    pub fn is_in_bounds(&self, x: i32, y: i32) -> bool {
+        x >= 0 && y > -0 && x < self.width && y < self.height
+    }
+
     fn assert_in_bounds(&self, x: i32, y: i32) {
         if x < 0 || y < 0 || x >= self.width || y >= self.height {
             panic!(format!(

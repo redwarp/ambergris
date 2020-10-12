@@ -2,9 +2,10 @@ use graphics::{
     character::CharacterCache, types::ColorComponent, Context, Graphics, Image, Transformed,
 };
 
-use crate::colors::{Color, DARK_GREY, WHITE};
-
-const WINDOW_BACKGROUND_COLOR: Color = Color::from_argb(0xaa000000);
+use crate::{
+    colors::{Color, WHITE},
+    palette::WINDOW_BACKGROUND,
+};
 
 /// Draw a character, and center it in the grid.
 pub fn draw_char<C, G>(
@@ -150,7 +151,7 @@ pub fn draw_window<G, C>(
     draw_rectangle(
         origin,
         size,
-        WINDOW_BACKGROUND_COLOR.into(),
+        WINDOW_BACKGROUND.into(),
         grid_size,
         context,
         graphics,

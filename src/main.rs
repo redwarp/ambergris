@@ -13,6 +13,7 @@ mod components;
 mod game;
 mod inventory;
 mod map;
+mod palette;
 mod pistonengine;
 mod renderer;
 mod resources;
