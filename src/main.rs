@@ -11,6 +11,7 @@ use rand::SeedableRng;
 mod colors;
 mod components;
 mod game;
+mod inventory;
 mod map;
 mod pistonengine;
 mod renderer;

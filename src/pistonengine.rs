@@ -1,4 +1,3 @@
-use crate::resources::SharedInfo;
 use crate::systems;
 use crate::{
     colors::{Color, BLACK, DARK_GREY, WHITE},
@@ -6,6 +5,7 @@ use crate::{
     game::{Journal, RunState, State},
     map::Map,
 };
+use crate::{inventory::Inventory, resources::SharedInfo};
 use field_of_vision::FovMap;
 use graphics::character::CharacterCache;
 use graphics_buffer::BufferGlyphs;
@@ -49,6 +49,7 @@ pub struct Engine {
     height: i32,
     console: Console,
     hud: Hud,
+    mouse_position: [i32; 2],
 }
 
 impl Engine {
@@ -59,6 +60,7 @@ impl Engine {
             height,
             console: Console::new(1, 1),
             hud: Hud::new(width, height),
+            mouse_position: [0, 0],
         }
     }
 
@@ -98,6 +100,11 @@ impl Engine {
                     self.take_screenshot(state);
                 }
             }
+
+            event.mouse_cursor(|position| {
+                self.mouse_position[0] = (position[0] / GRID_SIZE as f64) as i32;
+                self.mouse_position[1] = (position[1] / GRID_SIZE as f64) as i32;
+            });
 
             if let Some(_args) = event.update_args() {
                 let previous_state = state.resources.get_or_insert(RunState::Init).clone();
@@ -347,7 +354,7 @@ impl Engine {
 
     fn render_inventory<G, C>(
         &self,
-        _state: &State,
+        state: &State,
         graphics: &mut G,
         context: Context,
         glyph_cache: &mut C,
@@ -355,14 +362,14 @@ impl Engine {
         C: CharacterCache,
         G: Graphics<Texture = <C as CharacterCache>::Texture>,
     {
-        crate::renderer::draw_window(
-            (5, 5),
-            (self.width - 10, self.height - 10),
-            "Inventory",
+        let inventory = Inventory {};
+        inventory.render(
+            state,
+            (self.width, self.height),
             GRID_SIZE,
-            glyph_cache,
-            context,
             graphics,
+            context,
+            glyph_cache,
         );
     }
 }
@@ -390,6 +397,7 @@ struct Console {
     height: i32,
     background: Vec<Option<Color>>,
     foreground: Vec<Option<(char, Color)>>,
+    selected: Vec<bool>,
 }
 
 impl Console {
@@ -399,6 +407,7 @@ impl Console {
             height,
             background: vec![None; (width * height) as usize],
             foreground: vec![None; (width * height) as usize],
+            selected: vec![false; (width * height) as usize],
         }
     }
 
@@ -408,6 +417,9 @@ impl Console {
         }
         for foreground in self.foreground.iter_mut() {
             *foreground = None;
+        }
+        for selected in self.selected.iter_mut() {
+            *selected = false;
         }
     }
 
@@ -425,6 +437,12 @@ impl Console {
 
     fn set_foreground<C: Into<Color>>(&mut self, x: i32, y: i32, glyph: char, color: C) {
         self.foreground[(x + y * self.width) as usize] = Some((glyph, color.into()));
+    }
+
+    fn select(&mut self, x: i32, y: i32) {
+        if x >= 0 && x < self.width && y >= 0 && y < self.height {
+            self.selected[(x + y * self.width) as usize] = true;
+        }
     }
 
     fn render<C, G>(

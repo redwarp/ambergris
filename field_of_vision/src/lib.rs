@@ -222,20 +222,20 @@ impl Debug for FovMap {
 pub trait Map {
     fn dimensions(&self) -> (isize, isize);
     fn is_transparent(&self, x: isize, y: isize) -> bool;
+}
 
-    fn assert_in_bounds(&self, x: isize, y: isize) {
-        let (width, height) = self.dimensions();
-        if self.is_bounded(x, y) {
-            panic!(format!(
-                "(x, y) should be between (0,0) and ({}, {}), got ({}, {})",
-                width, height, x, y
-            ));
-        }
-    }
+fn is_bounded<M: Map>(map: &M, x: isize, y: isize) -> bool {
+    let (width, height) = map.dimensions();
+    x < 0 || y < 0 || x >= width || y >= height
+}
 
-    fn is_bounded(&self, x: isize, y: isize) -> bool {
-        let (width, height) = self.dimensions();
-        x < 0 || y < 0 || x >= width || y >= height
+fn assert_in_bounds<M: Map>(map: &M, x: isize, y: isize) {
+    let (width, height) = map.dimensions();
+    if is_bounded(map, x, y) {
+        panic!(format!(
+            "(x, y) should be between (0,0) and ({}, {}), got ({}, {})",
+            width, height, x, y
+        ));
     }
 }
 
@@ -246,7 +246,7 @@ pub fn field_of_view<T: Map>(
     radius: isize,
 ) -> Vec<(isize, isize)> {
     let radius_square = radius.pow(2);
-    map.assert_in_bounds(x, y);
+    assert_in_bounds(map, x, y);
 
     if radius < 1 {
         return vec![(x, y)];
