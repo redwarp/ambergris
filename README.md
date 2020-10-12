@@ -1,5 +1,7 @@
 # Ambregris
 
+![Rust](https://github.com/redwarp/ambergris/workflows/Rust/badge.svg?branch=main)
+
 Your generic/boring rogue experience, following a bunch of tutorials:
 
 - https://tomassedovic.github.io/roguelike-tutorial/
