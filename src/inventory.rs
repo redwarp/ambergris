@@ -3,10 +3,9 @@ use legion::{component, IntoQuery, Read};
 use piston_window::Graphics;
 use std::collections::HashMap;
 
-use crate::pistonengine::RenderContext;
 use crate::{
     components::Body, components::InInventory, components::Item, game::State,
-    pistonengine::Renderable, renderer::draw_window,
+    renderer::draw_window, renderer::RenderContext, renderer::Renderable,
 };
 
 struct InventoryLine {

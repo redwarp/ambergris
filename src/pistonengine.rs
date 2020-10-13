@@ -3,6 +3,8 @@ use crate::{
     components::{Body, CombatStats, Coordinates, Player},
     game::{Journal, RunState, State},
     map::Map,
+    renderer::RenderContext,
+    renderer::Renderable,
 };
 use crate::{inventory::Inventory, resources::SharedInfo};
 use crate::{palette::OVERLAY, systems};
@@ -12,7 +14,7 @@ use graphics_buffer::BufferGlyphs;
 use legion::*;
 use piston_window::types::Color as PistonColor;
 use piston_window::*;
-use std::time::Instant;
+use std::{collections::VecDeque, time::Instant};
 
 const GRID_SIZE: u32 = 16;
 
@@ -58,7 +60,7 @@ impl Engine {
             title: title.into(),
             width,
             height,
-            console: Console::new(1, 1),
+            console: Console::new(0, 0, 1, 1),
             hud: Hud::new(width, height),
             mouse_position: [0, 0],
         }
@@ -150,27 +152,15 @@ impl Engine {
                 let (current, max) = current_player_life(state).unwrap_or((0, 0));
                 self.hud.health_bar.update(current, max);
 
+                let journal = state.resources.get::<Journal>().unwrap();
+                self.hud.update_journal(&journal);
+
                 previous_position = updated_position;
             };
 
             if let Some(_args) = event.render_args() {
                 window.draw_2d(&event, |context, graphics, device| {
                     self.render(state, graphics, context, &mut glyphs);
-
-                    let run_state = state.resources.get_or_insert(RunState::Init).clone();
-                    if run_state == RunState::ShowInventory {
-                        let mut render_context = RenderContext {
-                            grid_size: GRID_SIZE,
-                            graphics: graphics,
-                            character_cache: &mut glyphs,
-                            context: context,
-                        };
-
-                        let mut inventory =
-                            Inventory::new((5, 5), (self.width - 10, self.height - 10));
-                        inventory.list_items(state);
-                        inventory.render(&mut render_context);
-                    }
 
                     glyphs.factory.encoder.flush(device);
                 });
@@ -223,7 +213,7 @@ impl Engine {
         let mut fov = state.resources.get_mut::<FovMap>().unwrap();
 
         if self.console.width() != map.width || self.console.height() != map.height {
-            self.console = Console::new(map.width, map.height);
+            self.console = Console::new(0, 3, map.width, map.height);
         }
 
         if fov_recompute {
@@ -312,7 +302,7 @@ impl Engine {
         }
     }
 
-    fn consume_inventory_button(&self, button: Option<Button>, state: &mut State) -> RunState {
+    fn consume_inventory_button(&self, button: Option<Button>, _state: &mut State) -> RunState {
         if let Some(Button::Keyboard(key)) = button {
             match key {
                 Key::Escape | Key::I => RunState::WaitForPlayerInput,
@@ -354,61 +344,43 @@ impl Engine {
             .get::<RunState>()
             .map_or(RunState::Init, |fetched| *fetched);
 
+        let mut render_context = RenderContext {
+            grid_size: GRID_SIZE,
+            character_cache: glyph_cache,
+            context,
+            graphics,
+        };
+
         match run_state {
             RunState::ShowInventory => {
-                self.render_map_and_hud(state, graphics, context, glyph_cache);
-                self.render_inventory(state, graphics, context, glyph_cache);
+                self.render_map_and_hud(&mut render_context);
+                self.render_inventory(state, &mut render_context);
             }
             _ => {
-                self.render_map_and_hud(state, graphics, context, glyph_cache);
+                self.render_map_and_hud(&mut render_context);
             }
         }
     }
 
-    fn render_map_and_hud<G, C>(
-        &self,
-        state: &State,
-        graphics: &mut G,
-        context: Context,
-        glyph_cache: &mut C,
-    ) where
+    fn render_map_and_hud<C, G>(&self, render_context: &mut RenderContext<C, G>)
+    where
         C: CharacterCache,
         G: Graphics<Texture = <C as CharacterCache>::Texture>,
     {
-        clear(BLACK.into(), graphics);
+        clear(BLACK.into(), render_context.graphics);
 
-        self.console.render(
-            (0, 0),
-            (self.console.width, self.console.height),
-            (0, 3),
-            glyph_cache,
-            context,
-            graphics,
-        );
-
-        let journal = state.resources.get::<Journal>().unwrap();
-        self.hud.render(&journal, glyph_cache, context, graphics);
+        self.console.render(render_context);
+        self.hud.render(render_context);
     }
 
-    fn render_inventory<G, C>(
-        &self,
-        state: &State,
-        graphics: &mut G,
-        context: Context,
-        glyph_cache: &mut C,
-    ) where
+    fn render_inventory<C, G>(&self, state: &State, render_context: &mut RenderContext<C, G>)
+    where
         C: CharacterCache,
         G: Graphics<Texture = <C as CharacterCache>::Texture>,
     {
-        let inventory = Inventory::new((0, 0), (0, 0));
-        // inventory.render_inv(
-        //     state,
-        //     (self.width, self.height),
-        //     GRID_SIZE,
-        //     graphics,
-        //     context,
-        //     glyph_cache,
-        // );
+        let mut inventory = Inventory::new((5, 5), (self.width - 10, self.height - 10));
+        inventory.list_items(state);
+        inventory.render(render_context);
     }
 }
 
@@ -431,6 +403,7 @@ impl Into<PistonColor> for Color {
 }
 
 struct Console {
+    origin: (i32, i32),
     width: i32,
     height: i32,
     background: Vec<Option<Color>>,
@@ -439,8 +412,9 @@ struct Console {
 }
 
 impl Console {
-    fn new(width: i32, height: i32) -> Self {
+    fn new(x: i32, y: i32, width: i32, height: i32) -> Self {
         Console {
+            origin: (x, y),
             width,
             height,
             background: vec![None; (width * height) as usize],
@@ -482,32 +456,35 @@ impl Console {
             self.selected[(x + y * self.width) as usize] = true;
         }
     }
+}
 
-    fn render<C, G>(
-        &self,
-        (origin_x, origin_y): (i32, i32),
-        (origin_width, origin_height): (i32, i32),
-        (destination_x, destination_y): (i32, i32),
-        glyph_cache: &mut C,
-        context: Context,
-        graphics: &mut G,
-    ) where
+impl Renderable for Console {
+    fn position(&self) -> (i32, i32) {
+        self.origin
+    }
+
+    fn size(&self) -> (i32, i32) {
+        (self.width, self.height)
+    }
+
+    fn render<'a, C, G>(&self, render_context: &mut RenderContext<'a, C, G>)
+    where
         C: CharacterCache,
         G: Graphics<Texture = <C as CharacterCache>::Texture>,
     {
-        let dx = destination_x - origin_x;
-        let dy = destination_y - origin_y;
+        let (dx, dy) = self.position();
+        let (width, height) = self.size();
 
-        for x in origin_x..origin_width {
-            for y in origin_y..origin_height {
+        for x in 0..width {
+            for y in 0..height {
                 if let Some(color) = self.background[(x + y * self.width) as usize] {
                     crate::renderer::draw_square(
                         x + dx,
                         y + dy,
                         color.into(),
                         GRID_SIZE,
-                        context,
-                        graphics,
+                        render_context.context,
+                        render_context.graphics,
                     );
                 }
 
@@ -517,8 +494,8 @@ impl Console {
                         y + dy,
                         OVERLAY.into(),
                         GRID_SIZE,
-                        context,
-                        graphics,
+                        render_context.context,
+                        render_context.graphics,
                     );
                 }
 
@@ -529,9 +506,9 @@ impl Console {
                         color.into(),
                         GRID_SIZE,
                         glyph,
-                        glyph_cache,
-                        context,
-                        graphics,
+                        render_context.character_cache,
+                        render_context.context,
+                        render_context.graphics,
                     )
                     .ok();
                 }
@@ -611,6 +588,7 @@ struct Hud {
     height: i32,
     health_bar: StatBar,
     tooltip: Option<String>,
+    journal_entries: VecDeque<String>,
 }
 
 impl Hud {
@@ -625,6 +603,7 @@ impl Hud {
                 max: 0,
             },
             tooltip: None,
+            journal_entries: VecDeque::new(),
         }
     }
 
@@ -632,13 +611,25 @@ impl Hud {
         self.tooltip = tooltip.map(|tooltip| tooltip.into());
     }
 
-    fn render<C, G>(
-        &self,
-        journal: &Journal,
-        glyph_cache: &mut C,
-        context: Context,
-        graphics: &mut G,
-    ) where
+    pub fn update_journal(&mut self, journal: &Journal) {
+        self.journal_entries.clear();
+        for entry in journal.get_entries().iter().take(5) {
+            self.journal_entries.push_front(entry.clone());
+        }
+    }
+}
+
+impl Renderable for Hud {
+    fn position(&self) -> (i32, i32) {
+        (0, 0)
+    }
+
+    fn size(&self) -> (i32, i32) {
+        (self.width, self.height)
+    }
+
+    fn render<'a, C, G>(&self, render_context: &mut RenderContext<'a, C, G>)
+    where
         C: CharacterCache,
         G: Graphics<Texture = <C as CharacterCache>::Texture>,
     {
@@ -647,8 +638,8 @@ impl Hud {
             (self.width, 3),
             DARK_GREY.into(),
             GRID_SIZE,
-            context,
-            graphics,
+            render_context.context,
+            render_context.graphics,
         );
 
         crate::renderer::draw_rectangle(
@@ -656,17 +647,16 @@ impl Hud {
             (self.width, 7),
             DARK_GREY.into(),
             GRID_SIZE,
-            context,
-            graphics,
+            render_context.context,
+            render_context.graphics,
         );
 
-        self.health_bar
-            .render(graphics, glyph_cache, context, (1, 1));
-
-        let max_log = 5;
-        let log_count = (journal.get_entries().len() as i32).min(max_log);
-
-        let mut y = self.height as i32 - max_log + log_count - 2;
+        self.health_bar.render(
+            render_context.graphics,
+            render_context.character_cache,
+            render_context.context,
+            (1, 1),
+        );
 
         if let Some(tooltip) = &self.tooltip {
             crate::renderer::draw_text(
@@ -676,52 +666,31 @@ impl Hud {
                 WHITE.into(),
                 GRID_SIZE,
                 tooltip.as_str(),
-                glyph_cache,
-                context,
-                graphics,
+                render_context.character_cache,
+                render_context.context,
+                render_context.graphics,
             )
             .ok();
         }
 
-        for log in journal.get_entries() {
-            if y < self.height as i32 - max_log - 1 {
-                break;
-            }
+        let max_log = 5;
+        let mut y = self.height as i32 - max_log - 1;
 
+        for log in self.journal_entries.iter() {
             crate::renderer::draw_text(
                 1,
                 y,
                 50,
                 WHITE.into(),
                 GRID_SIZE,
-                log,
-                glyph_cache,
-                context,
-                graphics,
+                log.as_str(),
+                render_context.character_cache,
+                render_context.context,
+                render_context.graphics,
             )
             .ok();
 
-            y -= 1;
+            y += 1;
         }
     }
-}
-
-pub trait Renderable {
-    fn position(&self) -> (i32, i32);
-    fn size(&self) -> (i32, i32);
-    fn render<'a, C, G>(&self, render_context: &mut RenderContext<'a, C, G>)
-    where
-        C: CharacterCache,
-        G: Graphics<Texture = <C as CharacterCache>::Texture>;
-}
-
-pub struct RenderContext<'a, C, G>
-where
-    C: CharacterCache,
-    G: Graphics<Texture = <C as CharacterCache>::Texture>,
-{
-    pub grid_size: u32,
-    pub context: Context,
-    pub character_cache: &'a mut C,
-    pub graphics: &'a mut G,
 }

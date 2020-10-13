@@ -7,6 +7,26 @@ use crate::{
     palette::WINDOW_BACKGROUND,
 };
 
+pub trait Renderable {
+    fn position(&self) -> (i32, i32);
+    fn size(&self) -> (i32, i32);
+    fn render<'a, C, G>(&self, render_context: &mut RenderContext<'a, C, G>)
+    where
+        C: CharacterCache,
+        G: Graphics<Texture = <C as CharacterCache>::Texture>;
+}
+
+pub struct RenderContext<'a, C, G>
+where
+    C: CharacterCache,
+    G: Graphics<Texture = <C as CharacterCache>::Texture>,
+{
+    pub grid_size: u32,
+    pub character_cache: &'a mut C,
+    pub context: Context,
+    pub graphics: &'a mut G,
+}
+
 /// Draw a character, and center it in the grid.
 pub fn draw_char<C, G>(
     x: i32,
