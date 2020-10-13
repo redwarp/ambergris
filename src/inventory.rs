@@ -1,60 +1,100 @@
-use graphics::{character::CharacterCache, Context, Graphics};
+use graphics::character::CharacterCache;
 use legion::{component, IntoQuery, Read};
+use piston_window::Graphics;
+use std::collections::HashMap;
 
+use crate::pistonengine::RenderContext;
 use crate::{
-    components::Body, components::InInventory, components::Item, game::State, renderer::draw_window,
+    components::Body, components::InInventory, components::Item, game::State,
+    pistonengine::Renderable, renderer::draw_window,
 };
 
-pub struct Inventory {}
+struct InventoryLine {
+    name: String,
+    quantity: u32,
+}
+
+pub struct Inventory {
+    origin: (i32, i32),
+    size: (i32, i32),
+    items: HashMap<String, InventoryLine>,
+}
 
 impl Inventory {
-    pub fn list_items(&self, state: &State) {
-        let items: Vec<(&Item, &Body)> = <(Read<Item>, Read<Body>)>::query()
-            .filter(component::<InInventory>())
-            .iter(&state.world)
-            .collect::<Vec<_>>();
+    pub fn new(origin: (i32, i32), size: (i32, i32)) -> Self {
+        Inventory {
+            origin,
+            size,
+            items: HashMap::new(),
+        }
     }
 
-    pub fn render<G, C>(
-        &self,
-        state: &State,
-        window_size: (i32, i32),
-        grid_size: u32,
-        graphics: &mut G,
-        context: Context,
-        glyph_cache: &mut C,
-    ) where
+    pub fn list_items(&mut self, state: &State) {
+        self.items.clear();
+        for (_item, body) in <(Read<Item>, Read<Body>)>::query()
+            .filter(component::<InInventory>())
+            .iter(&state.world)
+        {
+            if let Some(inventory_line) = self.items.get_mut(&body.name) {
+                inventory_line.quantity += 1;
+            } else {
+                let inventory_line = InventoryLine {
+                    name: body.name.clone(),
+                    quantity: 1,
+                };
+                self.items.insert(body.name.clone(), inventory_line);
+            }
+        }
+    }
+}
+
+impl Renderable for Inventory {
+    fn position(&self) -> (i32, i32) {
+        self.origin
+    }
+
+    fn size(&self) -> (i32, i32) {
+        self.size
+    }
+
+    fn render<'a, C, G>(&self, render_context: &mut RenderContext<'a, C, G>)
+    where
         C: CharacterCache,
         G: Graphics<Texture = <C as CharacterCache>::Texture>,
     {
-        let (width, height) = window_size;
         draw_window(
-            (5, 5),
-            (width - 10, height - 10),
+            self.origin,
+            self.size,
             "Inventory",
-            grid_size,
-            glyph_cache,
-            context,
-            graphics,
+            render_context.grid_size,
+            render_context.character_cache,
+            render_context.context,
+            render_context.graphics,
         );
 
-        let items: Vec<(&Item, &Body)> = <(Read<Item>, Read<Body>)>::query()
-            .filter(component::<InInventory>())
-            .iter(&state.world)
-            .collect::<Vec<_>>();
-
         let mut y = 8;
-        for (_item, body) in items {
+
+        for (index, (_key, item)) in self.items.iter().enumerate() {
+            let text = match item.quantity {
+                1 => format!("{index}. {name}", index = index, name = item.name),
+                _ => format!(
+                    "{index}. {name} (x{quantity})",
+                    index = index,
+                    name = item.name,
+                    quantity = item.quantity
+                ),
+            };
+
             crate::renderer::draw_text(
                 6,
                 y,
-                width as u32,
+                10,
                 crate::colors::WHITE.into(),
-                grid_size,
-                body.name.as_str(),
-                glyph_cache,
-                context,
-                graphics,
+                render_context.grid_size,
+                text.as_str(),
+                render_context.character_cache,
+                render_context.context,
+                render_context.graphics,
             )
             .ok();
             y += 1;

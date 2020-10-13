@@ -157,6 +157,21 @@ impl Engine {
                 window.draw_2d(&event, |context, graphics, device| {
                     self.render(state, graphics, context, &mut glyphs);
 
+                    let run_state = state.resources.get_or_insert(RunState::Init).clone();
+                    if run_state == RunState::ShowInventory {
+                        let mut render_context = RenderContext {
+                            grid_size: GRID_SIZE,
+                            graphics: graphics,
+                            character_cache: &mut glyphs,
+                            context: context,
+                        };
+
+                        let mut inventory =
+                            Inventory::new((5, 5), (self.width - 10, self.height - 10));
+                        inventory.list_items(state);
+                        inventory.render(&mut render_context);
+                    }
+
                     glyphs.factory.encoder.flush(device);
                 });
             };
@@ -385,15 +400,15 @@ impl Engine {
         C: CharacterCache,
         G: Graphics<Texture = <C as CharacterCache>::Texture>,
     {
-        let inventory = Inventory {};
-        inventory.render(
-            state,
-            (self.width, self.height),
-            GRID_SIZE,
-            graphics,
-            context,
-            glyph_cache,
-        );
+        let inventory = Inventory::new((0, 0), (0, 0));
+        // inventory.render_inv(
+        //     state,
+        //     (self.width, self.height),
+        //     GRID_SIZE,
+        //     graphics,
+        //     context,
+        //     glyph_cache,
+        // );
     }
 }
 
@@ -689,4 +704,24 @@ impl Hud {
             y -= 1;
         }
     }
+}
+
+pub trait Renderable {
+    fn position(&self) -> (i32, i32);
+    fn size(&self) -> (i32, i32);
+    fn render<'a, C, G>(&self, render_context: &mut RenderContext<'a, C, G>)
+    where
+        C: CharacterCache,
+        G: Graphics<Texture = <C as CharacterCache>::Texture>;
+}
+
+pub struct RenderContext<'a, C, G>
+where
+    C: CharacterCache,
+    G: Graphics<Texture = <C as CharacterCache>::Texture>,
+{
+    pub grid_size: u32,
+    pub context: Context,
+    pub character_cache: &'a mut C,
+    pub graphics: &'a mut G,
 }
