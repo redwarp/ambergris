@@ -31,7 +31,6 @@ pub fn game_schedule() -> Schedule {
 #[read_component(Player)]
 pub fn monster_action(
     cmd: &mut CommandBuffer,
-    body: &Body,
     coordinates: &Coordinates,
     _: &Monster,
     _: &CombatStats,

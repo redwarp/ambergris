@@ -144,18 +144,21 @@ impl Engine {
 
                 state.resources.insert(new_run_state);
 
-                let updated_position = state.resources.get::<SharedInfo>().unwrap().player_position;
-
-                self.prepare_console(state, previous_position != updated_position);
                 self.prepare_tooltip(state);
+                if previous_state != new_run_state {
+                    let updated_position =
+                        state.resources.get::<SharedInfo>().unwrap().player_position;
 
-                let (current, max) = current_player_life(state).unwrap_or((0, 0));
-                self.hud.health_bar.update(current, max);
+                    self.prepare_console(state, previous_position != updated_position);
 
-                let journal = state.resources.get::<Journal>().unwrap();
-                self.hud.update_journal(&journal);
+                    let (current, max) = current_player_life(state).unwrap_or((0, 0));
+                    self.hud.health_bar.update(current, max);
 
-                previous_position = updated_position;
+                    let journal = state.resources.get::<Journal>().unwrap();
+                    self.hud.update_journal(&journal);
+
+                    previous_position = updated_position;
+                }
             };
 
             if let Some(_args) = event.render_args() {
@@ -191,8 +194,6 @@ impl Engine {
 
         let x = self.mouse_position[0];
         let y = self.mouse_position[1] - 3;
-        self.console.select(x, y);
-        let target_coordinates = Coordinates { x, y };
 
         let fov = state.resources.get::<FovMap>().unwrap();
         if !fov.is_in_bounds(x, y) || !fov.is_in_fov(x, y) {
@@ -200,6 +201,8 @@ impl Engine {
             return;
         }
 
+        self.console.select(x, y);
+        let target_coordinates = Coordinates { x, y };
         for (position, body) in <(&Coordinates, &Body)>::query().iter(&state.world) {
             if target_coordinates == *position {
                 self.hud.set_tooltip(Some(body.name.clone()));
@@ -408,7 +411,7 @@ struct Console {
     height: i32,
     background: Vec<Option<Color>>,
     foreground: Vec<Option<(char, Color)>>,
-    selected: Vec<bool>,
+    selected: Vec<(i32, i32)>,
 }
 
 impl Console {
@@ -419,7 +422,7 @@ impl Console {
             height,
             background: vec![None; (width * height) as usize],
             foreground: vec![None; (width * height) as usize],
-            selected: vec![false; (width * height) as usize],
+            selected: vec![],
         }
     }
 
@@ -430,9 +433,7 @@ impl Console {
         for foreground in self.foreground.iter_mut() {
             *foreground = None;
         }
-        for selected in self.selected.iter_mut() {
-            *selected = false;
-        }
+        self.selected.clear();
     }
 
     fn width(&self) -> i32 {
@@ -452,8 +453,9 @@ impl Console {
     }
 
     fn select(&mut self, x: i32, y: i32) {
+        self.selected.clear();
         if x >= 0 && x < self.width && y >= 0 && y < self.height {
-            self.selected[(x + y * self.width) as usize] = true;
+            self.selected.push((x, y));
         }
     }
 }
@@ -488,17 +490,6 @@ impl Renderable for Console {
                     );
                 }
 
-                if self.selected[(x + y * self.width) as usize] == true {
-                    crate::renderer::draw_square(
-                        x + dx,
-                        y + dy,
-                        OVERLAY.into(),
-                        GRID_SIZE,
-                        render_context.context,
-                        render_context.graphics,
-                    );
-                }
-
                 if let Some((glyph, color)) = self.foreground[(x + y * self.width) as usize] {
                     crate::renderer::draw_char(
                         x + dx,
@@ -513,6 +504,17 @@ impl Renderable for Console {
                     .ok();
                 }
             }
+        }
+
+        for (x, y) in self.selected.iter() {
+            crate::renderer::draw_square(
+                x + dx,
+                y + dy,
+                OVERLAY.into(),
+                GRID_SIZE,
+                render_context.context,
+                render_context.graphics,
+            );
         }
     }
 }
