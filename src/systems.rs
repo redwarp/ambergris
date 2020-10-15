@@ -192,13 +192,13 @@ pub fn use_item(
 
     let mut stats_query = <Write<CombatStats>>::query();
     let (mut stats_world, mut healing_world) = world.split_for_query(&stats_query);
-    if let Ok(stats) = stats_query.get_mut(&mut stats_world, *entity) {
-        if let Ok(healing) =
-            <&ProvidesHealing>::query().get(&mut healing_world, use_item_action.entity)
-        {
-            journal.log(format!("The {} heal {} hp", name, healing.heal_amount));
-            stats.heal(healing.heal_amount);
-        };
+
+    if let (Ok(stats), Ok(healing)) = (
+        stats_query.get_mut(&mut stats_world, *entity),
+        <&ProvidesHealing>::query().get(&mut healing_world, use_item_action.entity),
+    ) {
+        journal.log(format!("The {} heal {} hp", name, healing.heal_amount));
+        stats.heal(healing.heal_amount);
     }
 
     if let Ok(_consumable) = <&Consumable>::query().get(world, use_item_action.entity) {
