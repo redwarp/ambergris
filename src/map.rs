@@ -191,8 +191,11 @@ fn place_objects(world: &mut World, rng: &mut StdRng, map: &Map, room: &Rect) {
         let y = rng.gen_range(room.y1 + 1, room.y2);
 
         if !map.is_blocked((x, y)) {
-            let item = spawner::potion(x, y);
-            world.push(item);
+            if rng.gen::<f32>() < 0.5 {
+                world.push(spawner::potion(x, y));
+            } else {
+                world.push(spawner::invisibility_potion(x, y));
+            };
         }
     }
 }

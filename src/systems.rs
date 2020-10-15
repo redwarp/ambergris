@@ -4,13 +4,13 @@ use crate::map::Map;
 use crate::resources::SharedInfo;
 use crate::{colors::DARK_RED, game::Journal};
 use field_of_vision::FovMap;
-use legion::component;
 use legion::system;
 use legion::systems::CommandBuffer;
 use legion::world::SubWorld;
 use legion::Entity;
 use legion::IntoQuery;
 use legion::Schedule;
+use legion::{component, Write};
 
 pub fn game_schedule() -> Schedule {
     Schedule::builder()
@@ -19,6 +19,7 @@ pub fn game_schedule() -> Schedule {
         .add_system(attack_actions_system())
         .add_system(move_actions_system())
         .add_system(item_collection_system())
+        .add_system(use_item_system())
         .flush()
         .add_system(cleanup_deads_system())
         .add_system(update_map_and_position_system())
@@ -167,6 +168,42 @@ pub fn attack_actions(
     }
 
     target_stats.hp = (target_stats.hp - damage).max(0);
+}
+
+#[system(for_each)]
+#[read_component(Body)]
+#[read_component(ProvidesHealing)]
+#[read_component(Consumable)]
+#[write_component(CombatStats)]
+pub fn use_item(
+    cmd: &mut CommandBuffer,
+    world: &mut SubWorld,
+    use_item_action: &UseItemAction,
+    entity: &Entity,
+    #[resource] journal: &mut Journal,
+) {
+    cmd.remove_component::<UseItemAction>(*entity);
+
+    let name = <&Body>::query().get(world, *entity).unwrap().name.clone();
+
+    if let Ok(item_body) = <&Body>::query().get(world, use_item_action.entity) {
+        journal.log(format!("The {} uses the {}", name, item_body.name));
+    }
+
+    let mut stats_query = <Write<CombatStats>>::query();
+    let (mut stats_world, mut healing_world) = world.split_for_query(&stats_query);
+    if let Ok(stats) = stats_query.get_mut(&mut stats_world, *entity) {
+        if let Ok(healing) =
+            <&ProvidesHealing>::query().get(&mut healing_world, use_item_action.entity)
+        {
+            journal.log(format!("The {} heal {} hp", name, healing.heal_amount));
+            stats.heal(healing.heal_amount);
+        };
+    }
+
+    if let Ok(_consumable) = <&Consumable>::query().get(world, use_item_action.entity) {
+        cmd.remove(use_item_action.entity);
+    }
 }
 
 #[system(for_each)]

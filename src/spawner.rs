@@ -85,7 +85,7 @@ pub fn player(x: i32, y: i32) -> (Player, Coordinates, Body, CombatStats) {
     )
 }
 
-pub fn potion(x: i32, y: i32) -> (Item, Coordinates, Body, ProvidesHealing) {
+pub fn potion(x: i32, y: i32) -> (Item, Coordinates, Body, ProvidesHealing, Consumable) {
     (
         Item {},
         Coordinates { x, y },
@@ -96,5 +96,20 @@ pub fn potion(x: i32, y: i32) -> (Item, Coordinates, Body, ProvidesHealing) {
             color: colors::PURPLE,
         },
         ProvidesHealing { heal_amount: 5 },
+        Consumable {},
+    )
+}
+
+pub fn invisibility_potion(x: i32, y: i32) -> (Item, Coordinates, Body, Consumable) {
+    (
+        Item {},
+        Coordinates { x, y },
+        Body {
+            name: "invisibility potion".to_string(),
+            blocking: false,
+            char: 'i',
+            color: colors::PURPLE,
+        },
+        Consumable {},
     )
 }

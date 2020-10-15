@@ -63,11 +63,19 @@ pub struct CombatStats {
     pub attack: i32,
 }
 
+impl CombatStats {
+    pub fn heal(&mut self, healing_amount: i32) {
+        self.hp = (self.hp + healing_amount).max(0).min(self.max_hp);
+    }
+}
+
 pub struct Item {}
 
 pub struct ProvidesHealing {
     pub heal_amount: i32,
 }
+
+pub struct Consumable {}
 
 pub struct InInventory {
     pub owner: Entity,
@@ -76,4 +84,8 @@ pub struct InInventory {
 pub struct PickupItemAction {
     pub collected_by: Entity,
     pub item: Entity,
+}
+
+pub struct UseItemAction {
+    pub entity: Entity,
 }

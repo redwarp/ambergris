@@ -91,6 +91,14 @@ impl State {
         grabbed_item
     }
 
+    pub fn use_item(&mut self, item: Entity) {
+        let use_item_action = UseItemAction { entity: item };
+
+        if let Some(mut player_entry) = self.world.entry(self.player_entity) {
+            player_entry.add_component(use_item_action);
+        }
+    }
+
     pub fn log<T: Into<String>>(&self, text: T) {
         if let Some(mut journal) = self.resources.get_mut::<Journal>() {
             journal.log(text);

@@ -2,6 +2,7 @@ use crate::{
     colors::{Color, BLACK, DARK_GREY, WHITE},
     components::{Body, CombatStats, Coordinates, Player},
     game::{Journal, RunState, State},
+    inventory::InventoryAction,
     map::Map,
     renderer::RenderContext,
     renderer::Renderable,
@@ -51,6 +52,7 @@ pub struct Engine {
     height: i32,
     console: Console,
     hud: Hud,
+    inventory: Option<Inventory>,
     mouse_position: [i32; 2],
 }
 
@@ -62,6 +64,7 @@ impl Engine {
             height,
             console: Console::new(0, 0, 1, 1),
             hud: Hud::new(width, height),
+            inventory: None,
             mouse_position: [0, 0],
         }
     }
@@ -144,8 +147,16 @@ impl Engine {
 
                 state.resources.insert(new_run_state);
 
-                self.prepare_tooltip(state);
                 if previous_state != new_run_state {
+                    if new_run_state == RunState::ShowInventory {
+                        let mut inventory =
+                            Inventory::new((5, 5), (self.width - 10, self.height - 10));
+                        inventory.list_items(state);
+                        self.inventory = Some(inventory);
+                    } else {
+                        self.inventory = None;
+                    }
+
                     let updated_position =
                         state.resources.get::<SharedInfo>().unwrap().player_position;
 
@@ -158,6 +169,12 @@ impl Engine {
                     self.hud.update_journal(&journal);
 
                     previous_position = updated_position;
+                }
+
+                if let Some(inventory) = &mut self.inventory {
+                    inventory.set_mouse(self.mouse_position);
+                } else {
+                    self.prepare_tooltip(state);
                 }
             };
 
@@ -305,11 +322,19 @@ impl Engine {
         }
     }
 
-    fn consume_inventory_button(&self, button: Option<Button>, _state: &mut State) -> RunState {
+    fn consume_inventory_button(&mut self, button: Option<Button>, state: &mut State) -> RunState {
         if let Some(Button::Keyboard(key)) = button {
-            match key {
-                Key::Escape | Key::I => RunState::WaitForPlayerInput,
-                _ => RunState::ShowInventory,
+            if let Some(inventory) = &mut self.inventory {
+                match inventory.on_keyboard(&key) {
+                    InventoryAction::Select => RunState::ShowInventory,
+                    InventoryAction::Pick { entity } => {
+                        state.use_item(entity);
+                        RunState::PlayerTurn
+                    }
+                    InventoryAction::Close => RunState::PlayerTurn,
+                }
+            } else {
+                RunState::ShowInventory
             }
         } else {
             RunState::ShowInventory
@@ -357,7 +382,7 @@ impl Engine {
         match run_state {
             RunState::ShowInventory => {
                 self.render_map_and_hud(&mut render_context);
-                self.render_inventory(state, &mut render_context);
+                self.render_inventory(&mut render_context);
             }
             _ => {
                 self.render_map_and_hud(&mut render_context);
@@ -376,14 +401,14 @@ impl Engine {
         self.hud.render(render_context);
     }
 
-    fn render_inventory<C, G>(&self, state: &State, render_context: &mut RenderContext<C, G>)
+    fn render_inventory<C, G>(&self, render_context: &mut RenderContext<C, G>)
     where
         C: CharacterCache,
         G: Graphics<Texture = <C as CharacterCache>::Texture>,
     {
-        let mut inventory = Inventory::new((5, 5), (self.width - 10, self.height - 10));
-        inventory.list_items(state);
-        inventory.render(render_context);
+        if let Some(inventory) = &self.inventory {
+            inventory.render(render_context);
+        }
     }
 }
 
