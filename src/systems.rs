@@ -3,7 +3,6 @@ use crate::game::RunState;
 use crate::map::Map;
 use crate::resources::SharedInfo;
 use crate::{colors::DARK_RED, game::Journal};
-use field_of_vision::FovMap;
 use legion::system;
 use legion::systems::CommandBuffer;
 use legion::world::SubWorld;
@@ -38,14 +37,14 @@ pub fn monster_action(
     entity: &Entity,
     #[resource] shared_info: &SharedInfo,
     #[resource] run_state: &RunState,
-    #[resource] fov: &FovMap,
+    #[resource] map: &Map,
 ) {
     if *run_state != RunState::AiTurn {
         return;
     }
     let player_position = shared_info.player_position;
     let distance = coordinates.distance_to(player_position);
-    if fov.is_in_fov(coordinates.x, coordinates.y) {
+    if map.is_in_player_fov(coordinates.x, coordinates.y) {
         if distance >= 2.0 {
             let dx = player_position.0 - coordinates.x;
             let dy = player_position.1 - coordinates.y;

@@ -3,6 +3,7 @@ use crate::{
     spawner::{self, MonsterType},
 };
 
+use field_of_vision::Map as FieldOfVisionMap;
 use legion::component;
 use legion::IntoQuery;
 use legion::World;
@@ -78,6 +79,7 @@ pub struct Map {
     pub tiles: Vec<Tile>,
     pub explored_tiles: Vec<bool>,
     pub blocked: Vec<bool>,
+    pub player_fov: Vec<(i32, i32)>,
 }
 
 impl Map {
@@ -93,6 +95,28 @@ impl Map {
             (x + y * self.width) as usize
         }
     }
+
+    pub fn is_in_bounds(&self, x: i32, y: i32) -> bool {
+        x >= 0 && x < self.width && y >= 0 && y < self.height
+    }
+
+    pub fn is_in_player_fov(&self, x: i32, y: i32) -> bool {
+        self.player_fov.contains(&(x, y))
+    }
+
+    pub fn calculate_player_fov(&mut self, x: i32, y: i32, radius: i32) {
+        self.player_fov = field_of_vision::field_of_view(self, x, y, radius);
+    }
+}
+
+impl FieldOfVisionMap for Map {
+    fn dimensions(&self) -> (i32, i32) {
+        (self.width, self.height)
+    }
+
+    fn is_transparent(&self, x: i32, y: i32) -> bool {
+        !self.tiles[(x + y * self.width) as usize].block_sight
+    }
 }
 
 pub fn make_map(world: &mut World, rng: &mut StdRng) -> Map {
@@ -103,6 +127,7 @@ pub fn make_map(world: &mut World, rng: &mut StdRng) -> Map {
         tiles: vec![Tile::wall(); map_size],
         explored_tiles: vec![false; map_size],
         blocked: vec![false; map_size],
+        player_fov: vec![],
     };
 
     let mut rooms: Vec<Rect> = vec![];

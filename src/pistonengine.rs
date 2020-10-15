@@ -4,12 +4,12 @@ use crate::{
     game::{Journal, RunState, State},
     inventory::InventoryAction,
     map::Map,
+    palette,
     renderer::RenderContext,
     renderer::Renderable,
 };
 use crate::{inventory::Inventory, resources::SharedInfo};
 use crate::{palette::OVERLAY, systems};
-use field_of_vision::FovMap;
 use graphics::character::CharacterCache;
 use graphics_buffer::BufferGlyphs;
 use legion::*;
@@ -192,14 +192,14 @@ impl Engine {
         self.console.clear();
         self.prepare_map(state, compute_fov);
 
-        let fov = state.resources.get::<FovMap>().unwrap();
+        let map = state.resources.get::<Map>().unwrap();
 
         let mut query = <(&Body, &Coordinates)>::query();
         let mut bodies: Vec<_> = query.iter(&state.world).collect();
         bodies.sort_by(|&(body_0, _), &(body_1, _)| body_0.blocking.cmp(&body_1.blocking));
 
         for (body, coordinates) in bodies {
-            if fov.is_in_fov(coordinates.x, coordinates.y) {
+            if map.is_in_player_fov(coordinates.x, coordinates.y) {
                 self.console
                     .set_foreground(coordinates.x, coordinates.y, body.char, body.color);
             }
@@ -212,8 +212,8 @@ impl Engine {
         let x = self.mouse_position[0];
         let y = self.mouse_position[1] - 3;
 
-        let fov = state.resources.get::<FovMap>().unwrap();
-        if !fov.is_in_bounds(x, y) || !fov.is_in_fov(x, y) {
+        let map = state.resources.get::<Map>().unwrap();
+        if !map.is_in_bounds(x, y) || !map.is_in_player_fov(x, y) {
             // No tooltip for stuff we can't see!
             return;
         }
@@ -230,7 +230,6 @@ impl Engine {
 
     fn prepare_map(&mut self, state: &mut State, fov_recompute: bool) {
         let mut map = state.resources.get_mut::<Map>().unwrap();
-        let mut fov = state.resources.get_mut::<FovMap>().unwrap();
 
         if self.console.width() != map.width || self.console.height() != map.height {
             self.console = Console::new(0, 3, map.width, map.height);
@@ -239,7 +238,7 @@ impl Engine {
         if fov_recompute {
             let mut query = <&Coordinates>::query().filter(component::<Player>());
             for coordinates in query.iter(&state.world) {
-                fov.calculate_fov(coordinates.x, coordinates.y, TORCH_RADIUS);
+                map.calculate_player_fov(coordinates.x, coordinates.y, TORCH_RADIUS);
             }
         }
 
@@ -247,7 +246,7 @@ impl Engine {
         let map_height = map.height;
         for y in 0..map_height {
             for x in 0..map_width {
-                let visible = fov.is_in_fov(x, y);
+                let visible = map.is_in_player_fov(x, y);
                 let wall = map.tiles[x as usize + y as usize * map_width as usize].block_sight;
                 let color = match (visible, wall) {
                     (false, true) => COLOR_DARK_WALL,
@@ -625,7 +624,7 @@ impl Hud {
             height,
             health_bar: StatBar {
                 name: String::from("Health"),
-                color: crate::colors::DARK_RED,
+                color: palette::HEALTH,
                 current: 0,
                 max: 0,
             },

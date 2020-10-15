@@ -1,9 +1,7 @@
 use crate::game::State;
-use crate::map::Map;
 use crate::pistonengine::Engine as PistonEngine;
 use crate::resources::SharedInfo;
 
-use field_of_vision::FovMap;
 use game::Journal;
 use legion::{Resources, World};
 use rand::rngs::StdRng;
@@ -30,10 +28,8 @@ fn main() {
     let mut resources = Resources::default();
     let player_entity = spawner::player(&mut world, -1, -1);
     let map = crate::map::make_map(&mut world, &mut rng);
-    let fov = make_fov(&map);
     let journal = Journal::new();
     resources.insert(map);
-    resources.insert(fov);
     resources.insert(journal);
     resources.insert(SharedInfo {
         player_entity: player_entity,
@@ -49,20 +45,4 @@ fn main() {
 
     let mut renderer = PistonEngine::new("Ambergris", SCREEN_WIDTH, SCREEN_HEIGHT);
     renderer.run(&mut state);
-}
-
-fn make_fov(map: &Map) -> FovMap {
-    let mut fov = FovMap::new(map.width, map.height);
-
-    for y in 0..map.height {
-        for x in 0..map.width {
-            fov.set_transparent(
-                x,
-                y,
-                !map.tiles[x as usize + y as usize * map.width as usize].block_sight,
-            );
-        }
-    }
-
-    fov
 }

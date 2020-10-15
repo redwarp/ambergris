@@ -243,7 +243,7 @@ fn assert_in_bounds<M: Map>(map: &M, x: i32, y: i32) {
     }
 }
 
-pub fn field_of_view<T: Map>(map: &mut T, x: i32, y: i32, radius: i32) -> Vec<(i32, i32)> {
+pub fn field_of_view<T: Map>(map: &T, x: i32, y: i32, radius: i32) -> Vec<(i32, i32)> {
     let radius_square = radius.pow(2);
     assert_in_bounds(map, x, y);
 
@@ -269,7 +269,7 @@ pub fn field_of_view<T: Map>(map: &mut T, x: i32, y: i32, radius: i32) -> Vec<(i
 
     let mut visibles = vec![false; (sub_width * sub_height) as usize];
     // Set origin as visible.
-    visibles[(x - offset_x + (y - offset_y) * sub_width) as usize];
+    visibles[(x - offset_x + (y - offset_y) * sub_width) as usize] = true;
 
     for x in minx..maxx + 1 {
         cast_ray(

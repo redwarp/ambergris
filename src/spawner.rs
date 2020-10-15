@@ -1,6 +1,6 @@
 use legion::{Entity, World};
 
-use crate::{colors, components::*, game::Ai};
+use crate::{colors, components::*, game::Ai, palette};
 
 pub enum MonsterType {
     Orc,
@@ -91,7 +91,7 @@ pub fn potion(world: &mut World, x: i32, y: i32) {
             name: "potion".to_string(),
             blocking: false,
             char: 'i',
-            color: colors::PURPLE,
+            color: palette::HEALTH,
         },
         ProvidesHealing { heal_amount: 5 },
         Consumable {},
