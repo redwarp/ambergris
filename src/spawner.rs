@@ -1,3 +1,5 @@
+use legion::{Entity, World};
+
 use crate::{colors, components::*, game::Ai};
 
 pub enum MonsterType {
@@ -5,18 +7,14 @@ pub enum MonsterType {
     Troll,
 }
 
-pub fn monster(
-    monster_type: MonsterType,
-    x: i32,
-    y: i32,
-) -> (Monster, Coordinates, Body, CombatStats) {
+pub fn monster(world: &mut World, monster_type: MonsterType, x: i32, y: i32) {
     match monster_type {
-        MonsterType::Orc => orc(x, y),
-        MonsterType::Troll => troll(x, y),
-    }
+        MonsterType::Orc => orc(world, x, y),
+        MonsterType::Troll => troll(world, x, y),
+    };
 }
 
-fn orc(x: i32, y: i32) -> (Monster, Coordinates, Body, CombatStats) {
+fn orc(world: &mut World, x: i32, y: i32) {
     let body = Body {
         name: "orc".into(),
         blocking: true,
@@ -29,7 +27,7 @@ fn orc(x: i32, y: i32) -> (Monster, Coordinates, Body, CombatStats) {
         defense: 0,
         attack: 3,
     };
-    (
+    world.push((
         Monster {
             ai: Ai::Basic,
             speed: 900,
@@ -38,10 +36,10 @@ fn orc(x: i32, y: i32) -> (Monster, Coordinates, Body, CombatStats) {
         Coordinates::new(x, y),
         body,
         combat_stats,
-    )
+    ));
 }
 
-fn troll(x: i32, y: i32) -> (Monster, Coordinates, Body, CombatStats) {
+fn troll(world: &mut World, x: i32, y: i32) {
     let body = Body {
         name: "troll".into(),
         blocking: true,
@@ -54,7 +52,7 @@ fn troll(x: i32, y: i32) -> (Monster, Coordinates, Body, CombatStats) {
         defense: 1,
         attack: 4,
     };
-    (
+    world.push((
         Monster {
             ai: Ai::Basic,
             speed: 1100,
@@ -63,11 +61,11 @@ fn troll(x: i32, y: i32) -> (Monster, Coordinates, Body, CombatStats) {
         Coordinates { x, y },
         body,
         combat_stats,
-    )
+    ));
 }
 
-pub fn player(x: i32, y: i32) -> (Player, Coordinates, Body, CombatStats) {
-    (
+pub fn player(world: &mut World, x: i32, y: i32) -> Entity {
+    world.push((
         Player { speed: 1000 },
         Coordinates { x, y },
         Body {
@@ -82,11 +80,11 @@ pub fn player(x: i32, y: i32) -> (Player, Coordinates, Body, CombatStats) {
             attack: 5,
             defense: 2,
         },
-    )
+    ))
 }
 
-pub fn potion(x: i32, y: i32) -> (Item, Coordinates, Body, ProvidesHealing, Consumable) {
-    (
+pub fn potion(world: &mut World, x: i32, y: i32) {
+    world.push((
         Item {},
         Coordinates { x, y },
         Body {
@@ -97,11 +95,11 @@ pub fn potion(x: i32, y: i32) -> (Item, Coordinates, Body, ProvidesHealing, Cons
         },
         ProvidesHealing { heal_amount: 5 },
         Consumable {},
-    )
+    ));
 }
 
-pub fn invisibility_potion(x: i32, y: i32) -> (Item, Coordinates, Body, Consumable) {
-    (
+pub fn invisibility_potion(world: &mut World, x: i32, y: i32) {
+    world.push((
         Item {},
         Coordinates { x, y },
         Body {
@@ -111,5 +109,5 @@ pub fn invisibility_potion(x: i32, y: i32) -> (Item, Coordinates, Body, Consumab
             color: colors::PURPLE,
         },
         Consumable {},
-    )
+    ));
 }

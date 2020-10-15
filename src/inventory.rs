@@ -1,7 +1,7 @@
 use graphics::character::CharacterCache;
 use legion::{component, Entity, IntoQuery, Read};
 use piston_window::{Graphics, Key};
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 
 use crate::{
     components::Body, components::InInventory, components::Item, game::State,
@@ -16,7 +16,7 @@ struct InventoryLine {
 pub struct Inventory {
     origin: (i32, i32),
     size: (i32, i32),
-    items: HashMap<String, InventoryLine>,
+    items: BTreeMap<String, InventoryLine>,
     selected_line: i32,
 }
 
@@ -25,13 +25,14 @@ impl Inventory {
         Inventory {
             origin,
             size,
-            items: HashMap::new(),
+            items: BTreeMap::new(),
             selected_line: -1,
         }
     }
 
     pub fn list_items(&mut self, state: &State) {
         self.items.clear();
+
         for (entity, _item, body) in <(Entity, Read<Item>, Read<Body>)>::query()
             .filter(component::<InInventory>())
             .iter(&state.world)

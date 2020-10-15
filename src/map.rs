@@ -181,7 +181,7 @@ fn place_objects(world: &mut World, rng: &mut StdRng, map: &Map, room: &Rect) {
             } else {
                 MonsterType::Troll
             };
-            world.push(spawner::monster(monster_type, x, y));
+            spawner::monster(world, monster_type, x, y);
         }
     }
 
@@ -192,9 +192,9 @@ fn place_objects(world: &mut World, rng: &mut StdRng, map: &Map, room: &Rect) {
 
         if !map.is_blocked((x, y)) {
             if rng.gen::<f32>() < 0.5 {
-                world.push(spawner::potion(x, y));
+                spawner::potion(world, x, y);
             } else {
-                world.push(spawner::invisibility_potion(x, y));
+                spawner::invisibility_potion(world, x, y);
             };
         }
     }
