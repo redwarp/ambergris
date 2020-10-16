@@ -1,3 +1,5 @@
+use piston_window::types::Color as PistonColor;
+
 pub const BLACK: Color = Color::from_rgb(0x000000);
 pub const DARKER_GREEN: Color = Color::new(255, 0, 127, 0);
 pub const YELLOW: Color = Color::new(255, 255, 255, 0);
@@ -45,6 +47,28 @@ impl Color {
             g: (self.g as f32 * 0.75).round() as u8,
             b: (self.b as f32 * 0.75).round() as u8,
         }
+    }
+}
+
+impl Into<PistonColor> for Color {
+    fn into(self) -> PistonColor {
+        [
+            self.r as f32 / 255.0,
+            self.g as f32 / 255.0,
+            self.b as f32 / 255.0,
+            self.a as f32 / 255.0,
+        ]
+    }
+}
+
+impl Into<PistonColor> for &Color {
+    fn into(self) -> PistonColor {
+        [
+            self.r as f32 / 255.0,
+            self.g as f32 / 255.0,
+            self.b as f32 / 255.0,
+            self.a as f32 / 255.0,
+        ]
     }
 }
 

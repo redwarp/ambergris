@@ -13,7 +13,6 @@ use crate::{palette::OVERLAY, systems};
 use graphics::character::CharacterCache;
 use graphics_buffer::BufferGlyphs;
 use legion::*;
-use piston_window::types::Color as PistonColor;
 use piston_window::*;
 use std::{collections::VecDeque, time::Instant};
 
@@ -440,24 +439,13 @@ fn current_player_life(state: &State) -> Option<(i32, i32)> {
     })
 }
 
-impl Into<PistonColor> for Color {
-    fn into(self) -> PistonColor {
-        [
-            self.r as f32 / 255.0,
-            self.g as f32 / 255.0,
-            self.b as f32 / 255.0,
-            self.a as f32 / 255.0,
-        ]
-    }
-}
-
 struct Console {
     origin: (i32, i32),
     width: i32,
     height: i32,
     background: Vec<Option<Color>>,
     foreground: Vec<Option<(char, Color)>>,
-    selected: Vec<(i32, i32)>,
+    extras: Vec<(i32, i32, Color)>,
 }
 
 impl Console {
@@ -468,7 +456,7 @@ impl Console {
             height,
             background: vec![None; (width * height) as usize],
             foreground: vec![None; (width * height) as usize],
-            selected: vec![],
+            extras: vec![],
         }
     }
 
@@ -479,7 +467,7 @@ impl Console {
         for foreground in self.foreground.iter_mut() {
             *foreground = None;
         }
-        self.selected.clear();
+        self.extras.clear();
     }
 
     fn width(&self) -> i32 {
@@ -499,9 +487,9 @@ impl Console {
     }
 
     fn select(&mut self, x: i32, y: i32) {
-        self.selected.clear();
+        self.extras.clear();
         if x >= 0 && x < self.width && y >= 0 && y < self.height {
-            self.selected.push((x, y));
+            self.extras.push((x, y, palette::OVERLAY));
         }
     }
 }
@@ -552,11 +540,11 @@ impl Renderable for Console {
             }
         }
 
-        for (x, y) in self.selected.iter() {
+        for (x, y, color) in self.extras.iter() {
             crate::renderer::draw_square(
                 x + dx,
                 y + dy,
-                OVERLAY.into(),
+                color.into(),
                 GRID_SIZE,
                 render_context.context,
                 render_context.graphics,
