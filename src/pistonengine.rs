@@ -53,6 +53,7 @@ pub struct Engine {
     hud: Hud,
     inventory: Option<Inventory>,
     mouse_position: [i32; 2],
+    target_area: Option<Vec<(i32, i32)>>,
 }
 
 impl Engine {
@@ -65,6 +66,7 @@ impl Engine {
             hud: Hud::new(width, height),
             inventory: None,
             mouse_position: [0, 0],
+            target_area: None,
         }
     }
 
@@ -179,7 +181,7 @@ impl Engine {
                         burst: _,
                     } = new_run_state
                     {
-                        self.show_targetting_ring_on_console(state, range);
+                        self.show_targeting_overlay_on_console(state, range);
                     }
 
                     previous_position = updated_position;
@@ -188,9 +190,15 @@ impl Engine {
                 // Mouse stuff.
                 if let Some(inventory) = &mut self.inventory {
                     inventory.set_mouse(self.mouse_position);
-                } else if new_run_state == RunState::WaitForPlayerInput {
+                } else {
                     match new_run_state {
-                        RunState::ShowTargeting { item, range, burst } => {}
+                        RunState::ShowTargeting {
+                            item: _,
+                            range: _,
+                            burst,
+                        } => {
+                            self.show_targeting_ring_on_console(state, burst);
+                        }
                         _ => {
                             self.prepare_tooltip(state);
                         }
@@ -226,7 +234,7 @@ impl Engine {
         }
     }
 
-    pub fn show_targetting_ring_on_console(&mut self, state: &mut State, range: i32) {
+    pub fn show_targeting_overlay_on_console(&mut self, state: &mut State, range: i32) {
         let map = state.resources.get::<Map>().unwrap();
         let shared_info = state.resources.get::<SharedInfo>().unwrap();
 
@@ -237,7 +245,34 @@ impl Engine {
             range,
             false,
         );
-        self.console.select_multiple(&selected[..]);
+        self.console.overlay(&selected[..]);
+        self.target_area = Some(selected);
+    }
+    pub fn show_targeting_ring_on_console(&mut self, state: &mut State, burst: i32) {
+        let map = state.resources.get::<Map>().unwrap();
+
+        let (x, y) = (self.mouse_position[0], self.mouse_position[1] - 3);
+        if let Some(target_area) = &self.target_area {
+            if target_area.contains(&(x, y)) {
+                if burst <= 0 {
+                    self.console.select(x, y)
+                } else {
+                    let burst_area = field_of_vision::field_of_view(&*map, x, y, burst, false);
+                    self.console.select_multiple(&burst_area[..]);
+                }
+
+                // Let's also display the tooltip, because why not.
+
+                self.hud.set_tooltip::<String>(None);
+                let target_coordinates = Coordinates { x, y };
+                for (position, body) in <(&Coordinates, &Body)>::query().iter(&state.world) {
+                    if target_coordinates == *position {
+                        self.hud.set_tooltip(Some(body.name.clone()));
+                        break;
+                    }
+                }
+            }
+        }
     }
 
     pub fn prepare_tooltip(&mut self, state: &mut State) {
@@ -374,7 +409,7 @@ impl Engine {
 
     fn consume_targeting(&mut self, targetting: Targetting, button: Option<Button>) -> RunState {
         match button {
-            Some(Button::Mouse(mouse)) => RunState::ShowTargeting {
+            Some(Button::Mouse(_mouse)) => RunState::ShowTargeting {
                 item: targetting.item,
                 range: targetting.range,
                 burst: targetting.burst,
@@ -472,7 +507,8 @@ struct Console {
     height: i32,
     background: Vec<Option<Color>>,
     foreground: Vec<Option<(char, Color)>>,
-    extras: Vec<(i32, i32, Color)>,
+    overlay: Vec<(i32, i32, Color)>,
+    selection: Vec<(i32, i32, Color)>,
 }
 
 impl Console {
@@ -483,7 +519,8 @@ impl Console {
             height,
             background: vec![None; (width * height) as usize],
             foreground: vec![None; (width * height) as usize],
-            extras: vec![],
+            overlay: vec![],
+            selection: vec![],
         }
     }
 
@@ -494,7 +531,8 @@ impl Console {
         for foreground in self.foreground.iter_mut() {
             *foreground = None;
         }
-        self.extras.clear();
+        self.overlay.clear();
+        self.selection.clear();
     }
 
     fn width(&self) -> i32 {
@@ -514,19 +552,23 @@ impl Console {
     }
 
     fn select(&mut self, x: i32, y: i32) {
-        self.extras.clear();
+        self.selection.clear();
         if x >= 0 && x < self.width && y >= 0 && y < self.height {
-            self.extras.push((x, y, palette::OVERLAY));
+            self.selection.push((x, y, palette::SELECTED));
         }
     }
 
-    fn select_multiple(&mut self, selected: &[(i32, i32)]) {
-        self.extras.clear();
-        for position in selected
-            .iter()
-            .map(|&(x, y)| (x, y, palette::TARGET_OVERLAY))
-        {
-            self.extras.push(position);
+    fn select_multiple(&mut self, selection: &[(i32, i32)]) {
+        self.selection.clear();
+        for position in selection.iter().map(|&(x, y)| (x, y, palette::SELECTED)) {
+            self.selection.push(position);
+        }
+    }
+
+    fn overlay(&mut self, overlay: &[(i32, i32)]) {
+        self.overlay.clear();
+        for position in overlay.iter().map(|&(x, y)| (x, y, palette::OVERLAY)) {
+            self.overlay.push(position);
         }
     }
 }
@@ -577,7 +619,17 @@ impl Renderable for Console {
             }
         }
 
-        for (x, y, color) in self.extras.iter() {
+        for (x, y, color) in self.overlay.iter() {
+            crate::renderer::draw_square(
+                x + dx,
+                y + dy,
+                color.into(),
+                GRID_SIZE,
+                render_context.context,
+                render_context.graphics,
+            );
+        }
+        for (x, y, color) in self.selection.iter() {
             crate::renderer::draw_square(
                 x + dx,
                 y + dy,

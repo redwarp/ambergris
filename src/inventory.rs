@@ -152,7 +152,7 @@ impl Renderable for Inventory {
                 crate::renderer::draw_rectangle(
                     (self.origin.0 + 1, y),
                     (self.size.0 - 2, 1),
-                    crate::palette::OVERLAY.into(),
+                    crate::palette::SELECTED.into(),
                     render_context.grid_size,
                     render_context.context,
                     render_context.graphics,
