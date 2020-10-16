@@ -77,6 +77,15 @@ pub struct ProvidesHealing {
 
 pub struct Consumable {}
 
+pub struct Ranged {
+    pub range: i32,
+    pub burst: i32,
+}
+
+pub struct InflictsDamage {
+    pub damage: i32,
+}
+
 pub struct InInventory {
     pub owner: Entity,
 }

@@ -91,11 +91,20 @@ impl State {
         grabbed_item
     }
 
-    pub fn use_item(&mut self, item: Entity) {
-        let use_item_action = UseItemAction { entity: item };
+    pub fn use_item(&mut self, item: Entity) -> RunState {
+        if let Ok(ranged) = <&Ranged>::query().get(&self.world, item) {
+            RunState::ShowTargeting {
+                item,
+                range: ranged.range,
+                burst: ranged.burst,
+            }
+        } else {
+            let use_item_action = UseItemAction { entity: item };
 
-        if let Some(mut player_entry) = self.world.entry(self.player_entity) {
-            player_entry.add_component(use_item_action);
+            if let Some(mut player_entry) = self.world.entry(self.player_entity) {
+                player_entry.add_component(use_item_action);
+            }
+            RunState::PlayerTurn
         }
     }
 
@@ -115,6 +124,17 @@ pub enum RunState {
     Exit,
     Death,
     ShowInventory,
+    ShowTargeting {
+        item: Entity,
+        range: i32,
+        burst: i32,
+    },
+}
+
+pub struct Targetting {
+    pub item: Entity,
+    pub range: i32,
+    pub burst: i32,
 }
 
 pub struct Journal {

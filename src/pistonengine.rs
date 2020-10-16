@@ -1,7 +1,7 @@
 use crate::{
     colors::{Color, BLACK, DARK_GREY, WHITE},
     components::{Body, CombatStats, Coordinates, Player},
-    game::{Journal, RunState, State},
+    game::{Journal, RunState, State, Targetting},
     inventory::InventoryAction,
     map::Map,
     palette,
@@ -143,6 +143,10 @@ impl Engine {
                     RunState::ShowInventory => {
                         self.consume_inventory_button(pending_button.take(), state)
                     }
+                    RunState::ShowTargeting { item, range, burst } => self.consume_targeting(
+                        Targetting { item, range, burst },
+                        pending_button.take(),
+                    ),
                 };
 
                 state.resources.insert(new_run_state);
@@ -173,8 +177,13 @@ impl Engine {
 
                 if let Some(inventory) = &mut self.inventory {
                     inventory.set_mouse(self.mouse_position);
-                } else {
-                    self.prepare_tooltip(state);
+                } else if new_run_state == RunState::WaitForPlayerInput {
+                    match new_run_state {
+                        RunState::ShowTargeting { item, range, burst } => {}
+                        _ => {
+                            self.prepare_tooltip(state);
+                        }
+                    }
                 }
             };
 
@@ -326,10 +335,7 @@ impl Engine {
             if let Some(inventory) = &mut self.inventory {
                 match inventory.on_keyboard(&key) {
                     InventoryAction::Select => RunState::ShowInventory,
-                    InventoryAction::Pick { entity } => {
-                        state.use_item(entity);
-                        RunState::PlayerTurn
-                    }
+                    InventoryAction::Pick { entity } => state.use_item(entity),
                     InventoryAction::Close => RunState::PlayerTurn,
                 }
             } else {
@@ -337,6 +343,22 @@ impl Engine {
             }
         } else {
             RunState::ShowInventory
+        }
+    }
+
+    fn consume_targeting(&mut self, targetting: Targetting, button: Option<Button>) -> RunState {
+        match button {
+            Some(Button::Mouse(mouse)) => RunState::ShowTargeting {
+                item: targetting.item,
+                range: targetting.range,
+                burst: targetting.burst,
+            },
+            Some(Button::Keyboard(key)) if key == Key::Escape => RunState::WaitForPlayerInput,
+            _ => RunState::ShowTargeting {
+                item: targetting.item,
+                range: targetting.range,
+                burst: targetting.burst,
+            },
         }
     }
 

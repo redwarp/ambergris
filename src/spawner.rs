@@ -98,16 +98,18 @@ pub fn potion(world: &mut World, x: i32, y: i32) {
     ));
 }
 
-pub fn invisibility_potion(world: &mut World, x: i32, y: i32) {
+pub fn scroll_of_lightning_bolt(world: &mut World, x: i32, y: i32) {
     world.push((
         Item {},
         Coordinates { x, y },
         Body {
-            name: "invisibility potion".to_string(),
+            name: "scroll of lightning bolt".to_string(),
             blocking: false,
-            char: 'i',
-            color: colors::PURPLE,
+            char: '#',
+            color: colors::LIGHT_YELLOW,
         },
+        InflictsDamage { damage: 10 },
+        Ranged { range: 6, burst: 1 },
         Consumable {},
     ));
 }

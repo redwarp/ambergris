@@ -219,7 +219,7 @@ fn place_objects(world: &mut World, rng: &mut StdRng, map: &Map, room: &Rect) {
             if rng.gen::<f32>() < 0.5 {
                 spawner::potion(world, x, y);
             } else {
-                spawner::invisibility_potion(world, x, y);
+                spawner::scroll_of_lightning_bolt(world, x, y);
             };
         }
     }
