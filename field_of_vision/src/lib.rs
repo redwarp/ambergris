@@ -243,7 +243,13 @@ fn assert_in_bounds<M: Map>(map: &M, x: i32, y: i32) {
     }
 }
 
-pub fn field_of_view<T: Map>(map: &T, x: i32, y: i32, radius: i32) -> Vec<(i32, i32)> {
+pub fn field_of_view<T: Map>(
+    map: &T,
+    x: i32,
+    y: i32,
+    radius: i32,
+    include_walls: bool,
+) -> Vec<(i32, i32)> {
     let radius_square = radius.pow(2);
     assert_in_bounds(map, x, y);
 
@@ -376,7 +382,7 @@ pub fn field_of_view<T: Map>(map: &T, x: i32, y: i32, radius: i32) -> Vec<(i32, 
         offset_y,
     );
 
-    visibles
+    let visibles: Vec<(i32, i32)> = visibles
         .iter()
         .enumerate()
         .filter(|&(_index, visible)| *visible)
@@ -386,7 +392,16 @@ pub fn field_of_view<T: Map>(map: &T, x: i32, y: i32, radius: i32) -> Vec<(i32, 
                 index as i32 / sub_width + offset_y,
             )
         })
-        .collect()
+        .collect();
+
+    if !include_walls {
+        visibles
+            .into_iter()
+            .filter(|&(x, y)| map.is_transparent(x, y))
+            .collect()
+    } else {
+        visibles
+    }
 }
 
 fn cast_ray<T: Map>(
@@ -500,7 +515,7 @@ impl SampleMap {
             *see = false;
         }
 
-        let visibles = field_of_view(self, x, y, radius);
+        let visibles = field_of_view(self, x, y, radius, true);
 
         for (x, y) in visibles {
             self.vision[(x + y * self.width) as usize] = true

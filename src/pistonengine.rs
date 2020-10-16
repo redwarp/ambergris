@@ -235,6 +235,7 @@ impl Engine {
             shared_info.player_position.0,
             shared_info.player_position.1,
             range,
+            false,
         );
         self.console.select_multiple(&selected[..]);
     }
@@ -521,7 +522,10 @@ impl Console {
 
     fn select_multiple(&mut self, selected: &[(i32, i32)]) {
         self.extras.clear();
-        for position in selected.iter().map(|&(x, y)| (x, y, palette::OVERLAY)) {
+        for position in selected
+            .iter()
+            .map(|&(x, y)| (x, y, palette::TARGET_OVERLAY))
+        {
             self.extras.push(position);
         }
     }
