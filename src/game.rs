@@ -1,7 +1,7 @@
 use std::collections::VecDeque;
 
-use crate::components::*;
 use crate::map::Map;
+use crate::{components::*, resources::SharedInfo};
 use legion::Entity;
 use legion::IntoQuery;
 use legion::Resources;
@@ -91,21 +91,33 @@ impl State {
         grabbed_item
     }
 
-    pub fn use_item(&mut self, item: Entity) -> RunState {
-        if let Ok(ranged) = <&Ranged>::query().get(&self.world, item) {
+    pub fn use_item(&mut self, item_entity: Entity) -> RunState {
+        if let Ok(ranged) = <&Ranged>::query().get(&self.world, item_entity) {
             RunState::ShowTargeting {
-                item,
+                item: item_entity,
                 range: ranged.range,
                 burst: ranged.burst,
             }
         } else {
-            let use_item_action = UseItemAction { entity: item };
+            let use_item_intent = UseItemIntent { item_entity };
 
             if let Some(mut player_entry) = self.world.entry(self.player_entity) {
-                player_entry.add_component(use_item_action);
+                player_entry.add_component(use_item_intent);
             }
             RunState::PlayerTurn
         }
+    }
+
+    pub fn drop_item(&mut self, item_entity: Entity) -> RunState {
+        let drop_item_intent = DropItemIntent { item_entity };
+
+        if let Some(mut entry) = self.world.entry(self.player_entity) {
+            entry.add_component(drop_item_intent);
+            // entry.remove_component::<InInventory>();
+            // entry.add_component(Coordinates { x, y });
+        }
+
+        RunState::PlayerTurn
     }
 
     pub fn log<T: Into<String>>(&self, text: T) {

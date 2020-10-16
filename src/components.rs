@@ -95,6 +95,10 @@ pub struct PickupItemAction {
     pub item: Entity,
 }
 
-pub struct UseItemAction {
-    pub entity: Entity,
+pub struct UseItemIntent {
+    pub item_entity: Entity,
+}
+
+pub struct DropItemIntent {
+    pub item_entity: Entity,
 }

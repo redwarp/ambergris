@@ -19,6 +19,7 @@ pub fn game_schedule() -> Schedule {
         .add_system(move_actions_system())
         .add_system(item_collection_system())
         .add_system(use_item_system())
+        .add_system(drop_item_system())
         .flush()
         .add_system(cleanup_deads_system())
         .add_system(update_map_and_position_system())
@@ -177,15 +178,15 @@ pub fn attack_actions(
 pub fn use_item(
     cmd: &mut CommandBuffer,
     world: &mut SubWorld,
-    use_item_action: &UseItemAction,
+    use_item_action: &UseItemIntent,
     entity: &Entity,
     #[resource] journal: &mut Journal,
 ) {
-    cmd.remove_component::<UseItemAction>(*entity);
+    cmd.remove_component::<UseItemIntent>(*entity);
 
     let name = <&Body>::query().get(world, *entity).unwrap().name.clone();
 
-    if let Ok(item_body) = <&Body>::query().get(world, use_item_action.entity) {
+    if let Ok(item_body) = <&Body>::query().get(world, use_item_action.item_entity) {
         journal.log(format!("The {} uses the {}", name, item_body.name));
     }
 
@@ -194,14 +195,14 @@ pub fn use_item(
 
     if let (Ok(stats), Ok(healing)) = (
         stats_query.get_mut(&mut stats_world, *entity),
-        <&ProvidesHealing>::query().get(&mut healing_world, use_item_action.entity),
+        <&ProvidesHealing>::query().get(&mut healing_world, use_item_action.item_entity),
     ) {
         journal.log(format!("The {} heal {} hp", name, healing.heal_amount));
         stats.heal(healing.heal_amount);
     }
 
-    if let Ok(_consumable) = <&Consumable>::query().get(world, use_item_action.entity) {
-        cmd.remove(use_item_action.entity);
+    if let Ok(_consumable) = <&Consumable>::query().get(world, use_item_action.item_entity) {
+        cmd.remove(use_item_action.item_entity);
     }
 }
 
@@ -270,4 +271,33 @@ pub fn item_collection(
     }
 
     cmd.remove(*entity);
+}
+
+#[system(for_each)]
+#[read_component(Body)]
+pub fn drop_item(
+    cmd: &mut CommandBuffer,
+    world: &mut SubWorld,
+    intent: &DropItemIntent,
+    owner_coordinates: &Coordinates,
+    owner_entity: &Entity,
+    #[resource] journal: &mut Journal,
+) {
+    cmd.remove_component::<DropItemIntent>(*owner_entity);
+    let item_coordinates = Coordinates {
+        x: owner_coordinates.x,
+        y: owner_coordinates.y,
+    };
+
+    cmd.add_component(intent.item_entity, item_coordinates);
+    cmd.remove_component::<InInventory>(intent.item_entity);
+
+    let owner_name = <&Body>::query()
+        .get(world, *owner_entity)
+        .unwrap()
+        .name
+        .clone();
+    if let Ok(item_body) = <&Body>::query().get(world, intent.item_entity) {
+        journal.log(format!("The {} dropped the {}", owner_name, item_body.name));
+    }
 }

@@ -333,9 +333,10 @@ impl Engine {
         if let Some(Button::Keyboard(key)) = button {
             if let Some(inventory) = &mut self.inventory {
                 match inventory.on_keyboard(&key) {
-                    InventoryAction::Select => RunState::ShowInventory,
+                    InventoryAction::Selecting => RunState::ShowInventory,
                     InventoryAction::Pick { entity } => state.use_item(entity),
                     InventoryAction::Close => RunState::PlayerTurn,
+                    InventoryAction::Drop { entity } => state.drop_item(entity),
                 }
             } else {
                 RunState::ShowInventory

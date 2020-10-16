@@ -58,14 +58,15 @@ impl Inventory {
         match key {
             Key::Up | Key::W => {
                 self.selected_line = (self.selected_line - 1).max(0);
-                InventoryAction::Select
+                InventoryAction::Selecting
             }
             Key::Down | Key::S => {
                 self.selected_line = (self.selected_line + 1).min(self.items.len() as i32 - 1);
-                InventoryAction::Select
+                InventoryAction::Selecting
             }
             Key::Escape => InventoryAction::Close,
             Key::Return | Key::NumPadEnter => self.pick(self.selected_line),
+            Key::D => self.drop(self.selected_line),
             Key::D1 | Key::NumPad1 => self.pick(0),
             Key::D2 | Key::NumPad2 => self.pick(1),
             Key::D3 | Key::NumPad3 => self.pick(2),
@@ -75,7 +76,7 @@ impl Inventory {
             Key::D7 | Key::NumPad7 => self.pick(6),
             Key::D8 | Key::NumPad8 => self.pick(7),
             Key::D9 | Key::NumPad9 => self.pick(8),
-            _ => InventoryAction::Select,
+            _ => InventoryAction::Selecting,
         }
     }
 
@@ -92,10 +93,30 @@ impl Inventory {
 
                 InventoryAction::Pick { entity }
             } else {
-                InventoryAction::Select
+                InventoryAction::Selecting
             }
         } else {
-            InventoryAction::Select
+            InventoryAction::Selecting
+        }
+    }
+
+    fn drop(&mut self, index: i32) -> InventoryAction {
+        if index >= 0 && index < self.items.len() as i32 {
+            let key = self.items.keys().nth(index as usize).unwrap().clone();
+            let item = self.items.get_mut(&key).unwrap();
+
+            if item.entities.len() > 0 {
+                let entity = item.entities.pop().unwrap();
+                if item.entities.len() == 0 {
+                    self.items.remove(&key);
+                }
+
+                InventoryAction::Drop { entity }
+            } else {
+                InventoryAction::Selecting
+            }
+        } else {
+            InventoryAction::Selecting
         }
     }
 }
@@ -174,5 +195,6 @@ impl Renderable for Inventory {
 pub enum InventoryAction {
     Close,
     Pick { entity: Entity },
-    Select,
+    Selecting,
+    Drop { entity: Entity },
 }
