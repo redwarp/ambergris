@@ -1,3 +1,4 @@
+use crate::systems;
 use crate::{
     colors::{Color, BLACK, DARK_GREY, WHITE},
     components::{Body, CombatStats, Coordinates, Player},
@@ -9,7 +10,6 @@ use crate::{
     renderer::Renderable,
 };
 use crate::{inventory::Inventory, resources::SharedInfo};
-use crate::{palette::OVERLAY, systems};
 use graphics::character::CharacterCache;
 use graphics_buffer::BufferGlyphs;
 use legion::*;
@@ -168,12 +168,24 @@ impl Engine {
                     let (current, max) = current_player_life(state).unwrap_or((0, 0));
                     self.hud.health_bar.update(current, max);
 
-                    let journal = state.resources.get::<Journal>().unwrap();
-                    self.hud.update_journal(&journal);
+                    {
+                        let journal = state.resources.get::<Journal>().unwrap();
+                        self.hud.update_journal(&journal);
+                    }
+
+                    if let RunState::ShowTargeting {
+                        item: _,
+                        range,
+                        burst: _,
+                    } = new_run_state
+                    {
+                        self.show_targetting_ring_on_console(state, range);
+                    }
 
                     previous_position = updated_position;
                 }
 
+                // Mouse stuff.
                 if let Some(inventory) = &mut self.inventory {
                     inventory.set_mouse(self.mouse_position);
                 } else if new_run_state == RunState::WaitForPlayerInput {
@@ -212,6 +224,19 @@ impl Engine {
                     .set_foreground(coordinates.x, coordinates.y, body.char, body.color);
             }
         }
+    }
+
+    pub fn show_targetting_ring_on_console(&mut self, state: &mut State, range: i32) {
+        let map = state.resources.get::<Map>().unwrap();
+        let shared_info = state.resources.get::<SharedInfo>().unwrap();
+
+        let selected = field_of_vision::field_of_view(
+            &*map,
+            shared_info.player_position.0,
+            shared_info.player_position.1,
+            range,
+        );
+        self.console.select_multiple(&selected[..]);
     }
 
     pub fn prepare_tooltip(&mut self, state: &mut State) {
@@ -491,6 +516,13 @@ impl Console {
         self.extras.clear();
         if x >= 0 && x < self.width && y >= 0 && y < self.height {
             self.extras.push((x, y, palette::OVERLAY));
+        }
+    }
+
+    fn select_multiple(&mut self, selected: &[(i32, i32)]) {
+        self.extras.clear();
+        for position in selected.iter().map(|&(x, y)| (x, y, palette::OVERLAY)) {
+            self.extras.push(position);
         }
     }
 }
