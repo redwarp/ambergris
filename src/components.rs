@@ -1,7 +1,7 @@
 use crate::colors::Color;
 use crate::game::Ai;
 use crate::map::Position;
-use legion::Entity;
+use legion::{systems::CommandBuffer, world::SubWorld, Entity, EntityStore, IntoQuery};
 
 pub struct Body {
     pub name: String,
@@ -52,7 +52,6 @@ pub struct MoveAction {
 }
 
 pub struct AttackAction {
-    pub attacker_entity: Entity,
     pub target_entity: Entity,
 }
 
@@ -91,6 +90,25 @@ pub struct Burst {
 
 pub struct InflictsDamage {
     pub damage: i32,
+}
+pub struct SuffersDamage {
+    pub damage: i32,
+}
+
+impl SuffersDamage {
+    pub fn new_damage<T: EntityStore>(
+        world: &mut T,
+        cmd: &mut CommandBuffer,
+        victim: Entity,
+        damage: i32,
+    ) {
+        if let Ok(mut suffers_damage) = <&mut SuffersDamage>::query().get_mut(world, victim) {
+            suffers_damage.damage += damage;
+        } else {
+            let suffers_damage = SuffersDamage { damage };
+            cmd.add_component(victim, suffers_damage);
+        }
+    }
 }
 
 pub struct InInventory {

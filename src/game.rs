@@ -35,7 +35,6 @@ impl State {
             if coordinates.position() == position {
                 // We can attack a monster!
                 attack_action = Some(AttackAction {
-                    attacker_entity: self.player_entity,
                     target_entity: entity.clone(),
                 });
                 break;
@@ -44,7 +43,9 @@ impl State {
 
         match attack_action {
             Some(attack_action) => {
-                self.world.push((attack_action,));
+                if let Some(mut entry) = self.world.entry(self.player_entity) {
+                    entry.add_component(attack_action);
+                }
             }
             None => {
                 if !map.is_blocked(position) {

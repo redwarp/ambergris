@@ -21,6 +21,8 @@ pub fn game_schedule() -> Schedule {
         .add_system(move_actions_system())
         .add_system(item_collection_system())
         .flush()
+        .add_system(damage_system())
+        .flush()
         .add_system(cleanup_deads_system())
         .add_system(update_map_and_position_system())
         .add_system(update_game_state_system())
@@ -61,10 +63,9 @@ pub fn monster_action(
         } else {
             // Attack!
             let attack_action = AttackAction {
-                attacker_entity: entity.clone(),
                 target_entity: shared_info.player_entity.clone(),
             };
-            cmd.push((attack_action,));
+            cmd.add_component(*entity, attack_action);
         }
     }
 }
@@ -129,6 +130,7 @@ pub fn move_actions(
 #[system(for_each)]
 #[read_component(Body)]
 #[write_component(CombatStats)]
+#[write_component(SuffersDamage)]
 pub fn attack_actions(
     cmd: &mut CommandBuffer,
     world: &mut SubWorld,
@@ -136,9 +138,9 @@ pub fn attack_actions(
     entity: &Entity,
     #[resource] journal: &mut Journal,
 ) {
-    cmd.remove(*entity);
+    cmd.remove_component::<AttackAction>(*entity);
 
-    let attacker = <(&Body, &CombatStats)>::query().get(world, move_action.attacker_entity);
+    let attacker = <(&Body, &CombatStats)>::query().get(world, *entity);
     if attacker.is_err() {
         return;
     };
@@ -147,11 +149,11 @@ pub fn attack_actions(
     let attacker_name = attacker_body.name.clone();
     let attacker_attack = attacker_stats.attack;
 
-    let target = <(&Body, &mut CombatStats)>::query().get_mut(world, move_action.target_entity);
+    let target = <(&Body, &CombatStats)>::query().get(world, move_action.target_entity);
     if target.is_err() {
         return;
     }
-    let (target_body, target_stats): (&Body, &mut CombatStats) = target.unwrap();
+    let (target_body, target_stats): (&Body, &CombatStats) = target.unwrap();
 
     let damage = attacker_attack - target_stats.defense;
 
@@ -160,14 +162,29 @@ pub fn attack_actions(
             "The {} attacks the {} for {} damage.",
             attacker_name, target_body.name, damage
         ));
+
+        SuffersDamage::new_damage(world, cmd, move_action.target_entity, damage);
     } else {
         journal.log(format!(
             "The {} is too weak to damage the {}.",
             attacker_name, target_body.name
         ));
     }
+}
 
-    target_stats.hp = (target_stats.hp - damage).max(0);
+#[system(for_each)]
+#[write_component(CombatStats)]
+pub fn damage(
+    cmd: &mut CommandBuffer,
+    world: &mut SubWorld,
+    entity: &Entity,
+    suffers_damage: &SuffersDamage,
+) {
+    if let Ok(combat_stats) = <&mut CombatStats>::query().get_mut(world, *entity) {
+        combat_stats.take_damage(suffers_damage.damage);
+    }
+
+    cmd.remove_component::<SuffersDamage>(*entity);
 }
 
 #[system(for_each)]
@@ -177,6 +194,7 @@ pub fn attack_actions(
 #[read_component(Burst)]
 #[read_component(Coordinates)]
 #[read_component(InflictsDamage)]
+#[write_component(SuffersDamage)]
 #[write_component(CombatStats)]
 pub fn use_item(
     cmd: &mut CommandBuffer,
@@ -239,12 +257,18 @@ pub fn use_item(
             stats.heal(healing.heal_amount);
         }
 
-        if let (Ok(stats), Ok(damage)) = (
-            stats_query.get_mut(&mut stats_world, target),
-            <&InflictsDamage>::query().get(&mut healing_world, use_item_action.item_entity),
-        ) {
+        let (mut damage_world, mut healing_world) = healing_world.split::<&mut SuffersDamage>();
+        if let Ok(damage) =
+            <&InflictsDamage>::query().get(&mut healing_world, use_item_action.item_entity)
+        {
             journal.log(format!("The {} take {} damage", name, damage.damage));
-            stats.take_damage(damage.damage);
+            SuffersDamage::new_damage(&mut damage_world, cmd, target, damage.damage);
+            cmd.add_component(
+                target,
+                SuffersDamage {
+                    damage: damage.damage,
+                },
+            );
         }
     }
 
