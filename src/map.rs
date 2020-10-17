@@ -216,11 +216,15 @@ fn place_objects(world: &mut World, rng: &mut StdRng, map: &Map, room: &Rect) {
         let y = rng.gen_range(room.y1 + 1, room.y2);
 
         if !map.is_blocked((x, y)) {
-            if rng.gen::<f32>() < 0.5 {
-                spawner::potion(world, x, y);
-            } else {
-                spawner::scroll_of_lightning_bolt(world, x, y);
-            };
+            match rng.gen::<f32>() {
+                r if r < 0.33 => {
+                    spawner::potion(world, x, y);
+                }
+                r if r < 0.66 => {
+                    spawner::scroll_of_lightning_bolt(world, x, y);
+                }
+                _ => spawner::scroll_of_fireball(world, x, y),
+            }
         }
     }
 }

@@ -106,9 +106,25 @@ pub fn scroll_of_lightning_bolt(world: &mut World, x: i32, y: i32) {
             name: "scroll of lightning bolt".to_string(),
             blocking: false,
             char: '#',
-            color: colors::LIGHT_YELLOW,
+            color: colors::CYAN,
         },
         InflictsDamage { damage: 10 },
+        Ranged { range: 7 },
+        Consumable {},
+    ));
+}
+
+pub fn scroll_of_fireball(world: &mut World, x: i32, y: i32) {
+    world.push((
+        Item {},
+        Coordinates { x, y },
+        Body {
+            name: "scroll of fireball".to_string(),
+            blocking: false,
+            char: '#',
+            color: colors::ORANGE,
+        },
+        InflictsDamage { damage: 8 },
         Ranged { range: 6 },
         Burst { radius: 1 },
         Consumable {},
