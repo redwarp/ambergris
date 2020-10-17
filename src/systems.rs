@@ -174,6 +174,8 @@ pub fn attack_actions(
 #[read_component(Body)]
 #[read_component(ProvidesHealing)]
 #[read_component(Consumable)]
+#[read_component(Burst)]
+#[read_component(Coordinates)]
 #[write_component(CombatStats)]
 pub fn use_item(
     cmd: &mut CommandBuffer,
@@ -181,8 +183,40 @@ pub fn use_item(
     use_item_action: &UseItemIntent,
     entity: &Entity,
     #[resource] journal: &mut Journal,
+    #[resource] map: &Map,
 ) {
     cmd.remove_component::<UseItemIntent>(*entity);
+
+    let mut targets: Vec<Entity> = vec![];
+    match use_item_action.target {
+        Some((x, y)) => {
+            let positions: Vec<(i32, i32)>;
+            let radius =
+                if let Ok(burst) = <&Burst>::query().get(world, use_item_action.item_entity) {
+                    Some(burst.radius)
+                } else {
+                    None
+                };
+
+            match radius {
+                Some(radius) => {
+                    positions = field_of_vision::field_of_view(map, x, y, radius, false);
+                }
+                None => {
+                    positions = vec![(x, y)];
+                }
+            }
+
+            for (entity, coordinates) in <(Entity, &Coordinates)>::query().iter(world) {
+                if positions.contains(&(coordinates.x, coordinates.y)) {
+                    targets.push(*entity);
+                }
+            }
+        }
+        None => {
+            targets.push(*entity);
+        }
+    }
 
     let name = <&Body>::query().get(world, *entity).unwrap().name.clone();
 
@@ -190,15 +224,19 @@ pub fn use_item(
         journal.log(format!("The {} uses the {}", name, item_body.name));
     }
 
-    let mut stats_query = <Write<CombatStats>>::query();
-    let (mut stats_world, mut healing_world) = world.split_for_query(&stats_query);
+    for target in targets {
+        let name = <&Body>::query().get(world, target).unwrap().name.clone();
 
-    if let (Ok(stats), Ok(healing)) = (
-        stats_query.get_mut(&mut stats_world, *entity),
-        <&ProvidesHealing>::query().get(&mut healing_world, use_item_action.item_entity),
-    ) {
-        journal.log(format!("The {} heal {} hp", name, healing.heal_amount));
-        stats.heal(healing.heal_amount);
+        let mut stats_query = <Write<CombatStats>>::query();
+        let (mut stats_world, mut healing_world) = world.split_for_query(&stats_query);
+
+        if let (Ok(stats), Ok(healing)) = (
+            stats_query.get_mut(&mut stats_world, target),
+            <&ProvidesHealing>::query().get(&mut healing_world, use_item_action.item_entity),
+        ) {
+            journal.log(format!("The {} heal {} hp", name, healing.heal_amount));
+            stats.heal(healing.heal_amount);
+        }
     }
 
     if let Ok(_consumable) = <&Consumable>::query().get(world, use_item_action.item_entity) {

@@ -2,7 +2,7 @@ use crate::systems;
 use crate::{
     colors::{Color, BLACK, DARK_GREY, WHITE},
     components::{Body, CombatStats, Coordinates, Player},
-    game::{Journal, RunState, State, Targetting},
+    game::{Journal, RunState, State, Targeting},
     inventory::InventoryAction,
     map::Map,
     palette,
@@ -145,7 +145,8 @@ impl Engine {
                         self.consume_inventory_button(pending_button.take(), state)
                     }
                     RunState::ShowTargeting { item, range, burst } => self.consume_targeting(
-                        Targetting { item, range, burst },
+                        state,
+                        Targeting { item, range, burst },
                         pending_button.take(),
                     ),
                 };
@@ -262,7 +263,6 @@ impl Engine {
                 }
 
                 // Let's also display the tooltip, because why not.
-
                 self.hud.set_tooltip::<String>(None);
                 let target_coordinates = Coordinates { x, y };
                 for (position, body) in <(&Coordinates, &Body)>::query().iter(&state.world) {
@@ -407,18 +407,32 @@ impl Engine {
         }
     }
 
-    fn consume_targeting(&mut self, targetting: Targetting, button: Option<Button>) -> RunState {
+    fn consume_targeting(
+        &mut self,
+        state: &mut State,
+        targeting: Targeting,
+        button: Option<Button>,
+    ) -> RunState {
         match button {
-            Some(Button::Mouse(_mouse)) => RunState::ShowTargeting {
-                item: targetting.item,
-                range: targetting.range,
-                burst: targetting.burst,
-            },
+            Some(Button::Mouse(_mouse)) => {
+                println!("Clicked on {:?}", self.mouse_position);
+
+                let current_state = RunState::ShowTargeting {
+                    item: targeting.item,
+                    range: targeting.range,
+                    burst: targeting.burst,
+                };
+                state.use_range_item_with_targeting(
+                    current_state,
+                    targeting.item,
+                    (self.mouse_position[0], self.mouse_position[1]),
+                )
+            }
             Some(Button::Keyboard(key)) if key == Key::Escape => RunState::WaitForPlayerInput,
             _ => RunState::ShowTargeting {
-                item: targetting.item,
-                range: targetting.range,
-                burst: targetting.burst,
+                item: targeting.item,
+                range: targeting.range,
+                burst: targeting.burst,
             },
         }
     }

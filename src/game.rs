@@ -1,7 +1,7 @@
 use std::collections::VecDeque;
 
+use crate::components::*;
 use crate::map::Map;
-use crate::{components::*, resources::SharedInfo};
 use legion::Entity;
 use legion::IntoQuery;
 use legion::Resources;
@@ -92,14 +92,25 @@ impl State {
     }
 
     pub fn use_item(&mut self, item_entity: Entity) -> RunState {
+        // Check if we need burst targeting
+        let radius = if let Ok(burst) = <&Burst>::query().get(&self.world, item_entity) {
+            burst.radius
+        } else {
+            0
+        };
+
         if let Ok(ranged) = <&Ranged>::query().get(&self.world, item_entity) {
             RunState::ShowTargeting {
                 item: item_entity,
                 range: ranged.range,
-                burst: ranged.burst,
+                burst: radius,
             }
         } else {
-            let use_item_intent = UseItemIntent { item_entity };
+            // An item to use on ourselves.
+            let use_item_intent = UseItemIntent {
+                item_entity,
+                target: None,
+            };
 
             if let Some(mut player_entry) = self.world.entry(self.player_entity) {
                 player_entry.add_component(use_item_intent);
@@ -118,6 +129,51 @@ impl State {
         }
 
         RunState::PlayerTurn
+    }
+
+    pub fn use_range_item_with_targeting(
+        &mut self,
+        previous_state: RunState,
+        item_entity: Entity,
+        target_position: (i32, i32),
+    ) -> RunState {
+        // Check if we need burst targeting
+        let radius = if let Ok(burst) = <&Burst>::query().get(&self.world, item_entity) {
+            burst.radius
+        } else {
+            0
+        };
+
+        if radius == 0 {
+            // We need to verify we could actually get a target.
+            for coordinates in <&Coordinates>::query().iter(&self.world) {
+                if target_position.0 == coordinates.x && target_position.1 == coordinates.y {
+                    // We have a match!
+                    let use_item_intent = UseItemIntent {
+                        item_entity,
+                        target: Some(target_position),
+                    };
+
+                    if let Some(mut player_entry) = self.world.entry(self.player_entity) {
+                        player_entry.add_component(use_item_intent);
+                    }
+                    return RunState::PlayerTurn;
+                }
+            }
+            // Couldn't find a valid target, returning previous state.
+            return previous_state;
+        }
+
+        // It's a burst, we can simply push an intent.
+        let use_item_intent = UseItemIntent {
+            item_entity,
+            target: Some(target_position),
+        };
+
+        if let Some(mut player_entry) = self.world.entry(self.player_entity) {
+            player_entry.add_component(use_item_intent);
+        }
+        return RunState::PlayerTurn;
     }
 
     pub fn log<T: Into<String>>(&self, text: T) {
@@ -143,7 +199,7 @@ pub enum RunState {
     },
 }
 
-pub struct Targetting {
+pub struct Targeting {
     pub item: Entity,
     pub range: i32,
     pub burst: i32,

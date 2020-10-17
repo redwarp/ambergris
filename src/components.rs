@@ -79,7 +79,10 @@ pub struct Consumable {}
 
 pub struct Ranged {
     pub range: i32,
-    pub burst: i32,
+}
+
+pub struct Burst {
+    pub radius: i32,
 }
 
 pub struct InflictsDamage {
@@ -97,6 +100,7 @@ pub struct PickupItemAction {
 
 pub struct UseItemIntent {
     pub item_entity: Entity,
+    pub target: Option<(i32, i32)>,
 }
 
 pub struct DropItemIntent {

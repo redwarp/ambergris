@@ -109,7 +109,8 @@ pub fn scroll_of_lightning_bolt(world: &mut World, x: i32, y: i32) {
             color: colors::LIGHT_YELLOW,
         },
         InflictsDamage { damage: 10 },
-        Ranged { range: 6, burst: 1 },
+        Ranged { range: 6 },
+        Burst { radius: 1 },
         Consumable {},
     ));
 }
