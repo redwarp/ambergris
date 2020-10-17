@@ -14,12 +14,12 @@ use legion::{component, Write};
 pub fn game_schedule() -> Schedule {
     Schedule::builder()
         .add_system(monster_action_system())
+        .add_system(use_item_system())
+        .add_system(drop_item_system())
         .flush()
         .add_system(attack_actions_system())
         .add_system(move_actions_system())
         .add_system(item_collection_system())
-        .add_system(use_item_system())
-        .add_system(drop_item_system())
         .flush()
         .add_system(cleanup_deads_system())
         .add_system(update_map_and_position_system())
@@ -176,6 +176,7 @@ pub fn attack_actions(
 #[read_component(Consumable)]
 #[read_component(Burst)]
 #[read_component(Coordinates)]
+#[read_component(InflictsDamage)]
 #[write_component(CombatStats)]
 pub fn use_item(
     cmd: &mut CommandBuffer,
@@ -236,6 +237,14 @@ pub fn use_item(
         ) {
             journal.log(format!("The {} heal {} hp", name, healing.heal_amount));
             stats.heal(healing.heal_amount);
+        }
+
+        if let (Ok(stats), Ok(damage)) = (
+            stats_query.get_mut(&mut stats_world, target),
+            <&InflictsDamage>::query().get(&mut healing_world, use_item_action.item_entity),
+        ) {
+            journal.log(format!("The {} take {} damage", name, damage.damage));
+            stats.take_damage(damage.damage);
         }
     }
 

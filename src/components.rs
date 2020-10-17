@@ -67,6 +67,10 @@ impl CombatStats {
     pub fn heal(&mut self, healing_amount: i32) {
         self.hp = (self.hp + healing_amount).max(0).min(self.max_hp);
     }
+
+    pub fn take_damage(&mut self, damage: i32) {
+        self.hp = (self.hp - damage).max(0).min(self.max_hp);
+    }
 }
 
 pub struct Item {}
