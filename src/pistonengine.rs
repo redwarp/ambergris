@@ -425,7 +425,7 @@ impl Engine {
                 state.use_range_item_with_targeting(
                     current_state,
                     targeting.item,
-                    (self.mouse_position[0], self.mouse_position[1]),
+                    (self.mouse_position[0], self.mouse_position[1] - 3),
                 )
             }
             Some(Button::Keyboard(key)) if key == Key::Escape => RunState::WaitForPlayerInput,
