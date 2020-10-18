@@ -1,8 +1,8 @@
-use crate::components::*;
 use crate::game::RunState;
 use crate::map::Map;
 use crate::resources::SharedInfo;
 use crate::{colors::DARK_RED, game::Journal};
+use crate::{components::*, game::Ai};
 use legion::system;
 use legion::systems::CommandBuffer;
 use legion::world::SubWorld;
@@ -35,7 +35,7 @@ pub fn game_schedule() -> Schedule {
 pub fn monster_action(
     cmd: &mut CommandBuffer,
     coordinates: &Coordinates,
-    _: &Monster,
+    monster: &Monster,
     _: &CombatStats,
     entity: &Entity,
     #[resource] shared_info: &SharedInfo,
@@ -45,27 +45,30 @@ pub fn monster_action(
     if *run_state != RunState::AiTurn {
         return;
     }
-    let player_position = shared_info.player_position;
-    let distance = coordinates.distance_to(player_position);
-    if map.is_in_player_fov(coordinates.x, coordinates.y) {
-        if distance >= 2.0 {
-            let dx = player_position.0 - coordinates.x;
-            let dy = player_position.1 - coordinates.y;
 
-            let dx = (dx as f32 / distance).round() as i32;
-            let dy = (dy as f32 / distance).round() as i32;
+    if monster.ai == Ai::Basic {
+        let player_position = shared_info.player_position;
+        let distance = coordinates.distance_to(player_position);
+        if map.is_in_player_fov(coordinates.x, coordinates.y) {
+            if distance >= 2.0 {
+                let dx = player_position.0 - coordinates.x;
+                let dy = player_position.1 - coordinates.y;
 
-            cmd.push((MoveAction {
-                entity: *entity,
-                dx,
-                dy,
-            },));
-        } else {
-            // Attack!
-            let attack_action = AttackAction {
-                target_entity: shared_info.player_entity.clone(),
-            };
-            cmd.add_component(*entity, attack_action);
+                let dx = (dx as f32 / distance).round() as i32;
+                let dy = (dy as f32 / distance).round() as i32;
+
+                cmd.push((MoveAction {
+                    entity: *entity,
+                    dx,
+                    dy,
+                },));
+            } else {
+                // Attack!
+                let attack_action = AttackAction {
+                    target_entity: shared_info.player_entity.clone(),
+                };
+                cmd.add_component(*entity, attack_action);
+            }
         }
     }
 }

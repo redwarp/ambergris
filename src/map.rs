@@ -80,6 +80,7 @@ pub struct Map {
     pub explored_tiles: Vec<bool>,
     pub blocked: Vec<bool>,
     pub player_fov: Vec<(i32, i32)>,
+    pub depth: i32,
 }
 
 impl Map {
@@ -128,6 +129,7 @@ pub fn make_map(world: &mut World, rng: &mut StdRng) -> Map {
         explored_tiles: vec![false; map_size],
         blocked: vec![false; map_size],
         player_fov: vec![],
+        depth: 1,
     };
 
     let mut rooms: Vec<Rect> = vec![];

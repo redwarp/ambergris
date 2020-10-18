@@ -415,8 +415,6 @@ impl Engine {
     ) -> RunState {
         match button {
             Some(Button::Mouse(_mouse)) => {
-                println!("Clicked on {:?}", self.mouse_position);
-
                 let current_state = RunState::ShowTargeting {
                     item: targeting.item,
                     range: targeting.range,

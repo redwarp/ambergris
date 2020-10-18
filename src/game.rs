@@ -14,6 +14,7 @@ pub struct State {
     pub player_entity: Entity,
 }
 
+#[derive(PartialEq)]
 pub enum Ai {
     Basic,
 }
