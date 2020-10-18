@@ -1,7 +1,7 @@
 use crate::colors::Color;
 use crate::game::Ai;
 use crate::map::Position;
-use legion::{systems::CommandBuffer, world::SubWorld, Entity, EntityStore, IntoQuery};
+use legion::Entity;
 
 pub struct Body {
     pub name: String,
@@ -22,16 +22,19 @@ impl Coordinates {
     }
 
     pub fn distance_to(&self, position: Position) -> f32 {
-        ((self.x - position.0).pow(2) as f32 + (self.y - position.1).pow(2) as f32).sqrt()
+        ((self.x - position.x).pow(2) as f32 + (self.y - position.y).pow(2) as f32).sqrt()
     }
 
     pub fn position(&self) -> Position {
-        (self.x, self.y)
+        Position {
+            x: self.x,
+            y: self.y,
+        }
     }
 
     pub fn set_position(&mut self, position: Position) {
-        self.x = position.0;
-        self.y = position.1;
+        self.x = position.x;
+        self.y = position.y;
     }
 }
 

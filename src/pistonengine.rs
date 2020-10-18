@@ -241,8 +241,8 @@ impl Engine {
 
         let selected = field_of_vision::field_of_view(
             &*map,
-            shared_info.player_position.0,
-            shared_info.player_position.1,
+            shared_info.player_position.x,
+            shared_info.player_position.y,
             range,
             false,
         );

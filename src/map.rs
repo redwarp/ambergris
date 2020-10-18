@@ -18,7 +18,23 @@ const MAX_ROOM: i32 = 30;
 const MAX_ROOM_MONSTERS: i32 = 3;
 const MAX_ROOM_ITEMS: i32 = 3;
 
-pub type Position = (i32, i32);
+#[derive(Debug, PartialEq, Copy, Clone)]
+pub struct Position {
+    pub x: i32,
+    pub y: i32,
+}
+
+impl From<Position> for (i32, i32) {
+    fn from(Position { x, y }: Position) -> Self {
+        (x, y)
+    }
+}
+
+impl From<(i32, i32)> for Position {
+    fn from((x, y): (i32, i32)) -> Self {
+        Position { x, y }
+    }
+}
 
 #[derive(Clone)]
 pub struct Tile {
@@ -89,7 +105,7 @@ impl Map {
     }
 
     pub fn index(&self, position: Position) -> usize {
-        let (x, y) = position;
+        let (x, y) = position.into();
         if x < 0 || x >= self.width || y < 0 || y >= self.height {
             0
         } else {
@@ -202,7 +218,7 @@ fn place_objects(world: &mut World, rng: &mut StdRng, map: &Map, room: &Rect) {
         let x = rng.gen_range(room.x1 + 1, room.x2);
         let y = rng.gen_range(room.y1 + 1, room.y2);
 
-        if !map.is_blocked((x, y)) {
+        if !map.is_blocked((x, y).into()) {
             let monster_type = if rng.gen::<f32>() < 0.8 {
                 MonsterType::Orc
             } else {
@@ -217,7 +233,7 @@ fn place_objects(world: &mut World, rng: &mut StdRng, map: &Map, room: &Rect) {
         let x = rng.gen_range(room.x1 + 1, room.x2);
         let y = rng.gen_range(room.y1 + 1, room.y2);
 
-        if !map.is_blocked((x, y)) {
+        if !map.is_blocked((x, y).into()) {
             match rng.gen::<f32>() {
                 r if r < 0.33 => {
                     spawner::potion(world, x, y);

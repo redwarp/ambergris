@@ -51,8 +51,8 @@ pub fn monster_action(
         let distance = coordinates.distance_to(player_position);
         if map.is_in_player_fov(coordinates.x, coordinates.y) {
             if distance >= 2.0 {
-                let dx = player_position.0 - coordinates.x;
-                let dy = player_position.1 - coordinates.y;
+                let dx = player_position.x - coordinates.x;
+                let dy = player_position.y - coordinates.y;
 
                 let dx = (dx as f32 / distance).round() as i32;
                 let dy = (dy as f32 / distance).round() as i32;
@@ -115,7 +115,8 @@ pub fn move_actions(
         let new_position = (
             coordinates.x + move_action.dx,
             coordinates.y + move_action.dy,
-        );
+        )
+            .into();
         if !map.is_blocked(new_position) {
             coordinates.set_position(new_position);
             // Update map of blocked. It can seem useless but if not for that code,

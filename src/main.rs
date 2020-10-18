@@ -33,7 +33,7 @@ fn main() {
     resources.insert(journal);
     resources.insert(SharedInfo {
         player_entity: player_entity,
-        player_position: (-1, -1),
+        player_position: (-1, -1).into(),
         alive: true,
     });
     let mut state = State {

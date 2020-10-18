@@ -1,7 +1,7 @@
 use std::collections::VecDeque;
 
-use crate::components::*;
 use crate::map::Map;
+use crate::{components::*, map::Position};
 use legion::Entity;
 use legion::IntoQuery;
 use legion::Resources;
@@ -25,7 +25,10 @@ impl State {
             .get(&self.world, self.player_entity)
             .unwrap();
 
-        let position = (coordinates.x + dx, coordinates.y + dy);
+        let position = Position {
+            x: coordinates.x + dx,
+            y: coordinates.y + dy,
+        };
         let map = self.resources.get::<Map>().unwrap();
 
         let mut enemies = <(Entity, &Coordinates, &Monster, &CombatStats)>::query();
