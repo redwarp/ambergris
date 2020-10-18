@@ -92,23 +92,8 @@ pub struct InflictsDamage {
     pub damage: i32,
 }
 pub struct SuffersDamage {
+    pub entity: Entity,
     pub damage: i32,
-}
-
-impl SuffersDamage {
-    pub fn new_damage<T: EntityStore>(
-        world: &mut T,
-        cmd: &mut CommandBuffer,
-        victim: Entity,
-        damage: i32,
-    ) {
-        if let Ok(mut suffers_damage) = <&mut SuffersDamage>::query().get_mut(world, victim) {
-            suffers_damage.damage += damage;
-        } else {
-            let suffers_damage = SuffersDamage { damage };
-            cmd.add_component(victim, suffers_damage);
-        }
-    }
 }
 
 pub struct InInventory {

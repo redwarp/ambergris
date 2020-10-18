@@ -162,8 +162,11 @@ pub fn attack_actions(
             "The {} attacks the {} for {} damage.",
             attacker_name, target_body.name, damage
         ));
-
-        SuffersDamage::new_damage(world, cmd, move_action.target_entity, damage);
+        let suffers_damage = SuffersDamage {
+            entity: move_action.target_entity,
+            damage,
+        };
+        cmd.push((suffers_damage,));
     } else {
         journal.log(format!(
             "The {} is too weak to damage the {}.",
@@ -180,11 +183,11 @@ pub fn damage(
     entity: &Entity,
     suffers_damage: &SuffersDamage,
 ) {
-    if let Ok(combat_stats) = <&mut CombatStats>::query().get_mut(world, *entity) {
+    if let Ok(combat_stats) = <&mut CombatStats>::query().get_mut(world, suffers_damage.entity) {
         combat_stats.take_damage(suffers_damage.damage);
     }
 
-    cmd.remove_component::<SuffersDamage>(*entity);
+    cmd.remove(*entity);
 }
 
 #[system(for_each)]
@@ -194,7 +197,6 @@ pub fn damage(
 #[read_component(Burst)]
 #[read_component(Coordinates)]
 #[read_component(InflictsDamage)]
-#[write_component(SuffersDamage)]
 #[write_component(CombatStats)]
 pub fn use_item(
     cmd: &mut CommandBuffer,
@@ -257,18 +259,14 @@ pub fn use_item(
             stats.heal(healing.heal_amount);
         }
 
-        let (mut damage_world, mut healing_world) = healing_world.split::<&mut SuffersDamage>();
         if let Ok(damage) =
             <&InflictsDamage>::query().get(&mut healing_world, use_item_action.item_entity)
         {
             journal.log(format!("The {} take {} damage", name, damage.damage));
-            SuffersDamage::new_damage(&mut damage_world, cmd, target, damage.damage);
-            cmd.add_component(
-                target,
-                SuffersDamage {
-                    damage: damage.damage,
-                },
-            );
+            cmd.push((SuffersDamage {
+                entity: target,
+                damage: damage.damage,
+            },));
         }
     }
 
