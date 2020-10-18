@@ -21,22 +21,21 @@ pub enum Ai {
 
 impl State {
     pub fn move_player(&mut self, dx: i32, dy: i32) {
-        let coordinates = <&Coordinates>::query()
+        let position = <&Position>::query()
             .get(&self.world, self.player_entity)
             .unwrap();
-
         let position = Position {
-            x: coordinates.x + dx,
-            y: coordinates.y + dy,
+            x: position.x + dx,
+            y: position.y + dy,
         };
+
         let map = self.resources.get::<Map>().unwrap();
 
-        let mut enemies = <(Entity, &Coordinates, &Monster, &CombatStats)>::query();
+        let mut enemies = <(Entity, &Position, &Monster, &CombatStats)>::query();
 
         let mut attack_action = None;
-        for (entity, body, _, _) in enemies.iter(&self.world) {
-            let coordinates: &Coordinates = body; // That seems to help.
-            if coordinates.position() == position {
+        for (entity, enemy_position, _, _) in enemies.iter(&self.world) {
+            if *enemy_position == position {
                 // We can attack a monster!
                 attack_action = Some(AttackAction {
                     target_entity: entity.clone(),
@@ -64,21 +63,20 @@ impl State {
     }
 
     pub fn grab_item(&mut self) -> bool {
-        let position = <&Coordinates>::query()
+        let position = <&Position>::query()
             .get(&self.world, self.player_entity)
-            .map(|coordinates| coordinates.position())
             .unwrap();
 
         let mut pickup_item_action = None;
         let mut grabbed_item = false;
 
-        <(&Coordinates, Entity)>::query()
+        <(&Position, Entity)>::query()
             .filter(component::<Item>())
             .filter(!component::<InInventory>())
             .for_each(
                 &self.world,
-                |(coordinates, entity): (&Coordinates, &Entity)| {
-                    if coordinates.position() == position {
+                |(coordinates, entity): (&Position, &Entity)| {
+                    if coordinates == position {
                         // We can grab!
                         pickup_item_action = Some((PickupItemAction {
                             collected_by: self.player_entity,
@@ -151,7 +149,7 @@ impl State {
 
         if radius == 0 {
             // We need to verify we could actually get a target.
-            for coordinates in <&Coordinates>::query().iter(&self.world) {
+            for coordinates in <&Position>::query().iter(&self.world) {
                 if target_position.0 == coordinates.x && target_position.1 == coordinates.y {
                     // We have a match!
                     let use_item_intent = UseItemIntent {

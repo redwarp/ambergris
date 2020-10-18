@@ -1,6 +1,5 @@
 use crate::colors::Color;
 use crate::game::Ai;
-use crate::map::Position;
 use legion::Entity;
 
 pub struct Body {
@@ -8,34 +7,6 @@ pub struct Body {
     pub blocking: bool,
     pub char: char,
     pub color: Color,
-}
-
-#[derive(Debug, PartialEq)]
-pub struct Coordinates {
-    pub x: i32,
-    pub y: i32,
-}
-
-impl Coordinates {
-    pub fn new(x: i32, y: i32) -> Self {
-        Coordinates { x, y }
-    }
-
-    pub fn distance_to(&self, position: Position) -> f32 {
-        ((self.x - position.x).pow(2) as f32 + (self.y - position.y).pow(2) as f32).sqrt()
-    }
-
-    pub fn position(&self) -> Position {
-        Position {
-            x: self.x,
-            y: self.y,
-        }
-    }
-
-    pub fn set_position(&mut self, position: Position) {
-        self.x = position.x;
-        self.y = position.y;
-    }
 }
 
 pub struct Player {

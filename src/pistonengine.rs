@@ -1,10 +1,11 @@
 use crate::systems;
 use crate::{
     colors::{Color, BLACK, DARK_GREY, WHITE},
-    components::{Body, CombatStats, Coordinates, Player},
+    components::{Body, CombatStats, Player},
     game::{Journal, RunState, State, Targeting},
     inventory::InventoryAction,
     map::Map,
+    map::Position,
     palette,
     renderer::RenderContext,
     renderer::Renderable,
@@ -223,7 +224,7 @@ impl Engine {
 
         let map = state.resources.get::<Map>().unwrap();
 
-        let mut query = <(&Body, &Coordinates)>::query();
+        let mut query = <(&Body, &Position)>::query();
         let mut bodies: Vec<_> = query.iter(&state.world).collect();
         bodies.sort_by(|&(body_0, _), &(body_1, _)| body_0.blocking.cmp(&body_1.blocking));
 
@@ -264,8 +265,8 @@ impl Engine {
 
                 // Let's also display the tooltip, because why not.
                 self.hud.set_tooltip::<String>(None);
-                let target_coordinates = Coordinates { x, y };
-                for (position, body) in <(&Coordinates, &Body)>::query().iter(&state.world) {
+                let target_coordinates = Position { x, y };
+                for (position, body) in <(&Position, &Body)>::query().iter(&state.world) {
                     if target_coordinates == *position {
                         self.hud.set_tooltip(Some(body.name.clone()));
                         break;
@@ -288,8 +289,8 @@ impl Engine {
         }
 
         self.console.select(x, y);
-        let target_coordinates = Coordinates { x, y };
-        for (position, body) in <(&Coordinates, &Body)>::query().iter(&state.world) {
+        let target_coordinates = Position { x, y };
+        for (position, body) in <(&Position, &Body)>::query().iter(&state.world) {
             if target_coordinates == *position {
                 self.hud.set_tooltip(Some(body.name.clone()));
                 break;
@@ -305,7 +306,7 @@ impl Engine {
         }
 
         if fov_recompute {
-            let mut query = <&Coordinates>::query().filter(component::<Player>());
+            let mut query = <&Position>::query().filter(component::<Player>());
             for coordinates in query.iter(&state.world) {
                 map.calculate_player_fov(coordinates.x, coordinates.y, TORCH_RADIUS);
             }

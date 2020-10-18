@@ -1,8 +1,8 @@
-use crate::game::RunState;
 use crate::map::Map;
 use crate::resources::SharedInfo;
 use crate::{colors::DARK_RED, game::Journal};
 use crate::{components::*, game::Ai};
+use crate::{game::RunState, map::Position};
 use legion::system;
 use legion::systems::CommandBuffer;
 use legion::world::SubWorld;
@@ -34,7 +34,7 @@ pub fn game_schedule() -> Schedule {
 #[read_component(Player)]
 pub fn monster_action(
     cmd: &mut CommandBuffer,
-    coordinates: &Coordinates,
+    coordinates: &Position,
     monster: &Monster,
     _: &CombatStats,
     entity: &Entity,
@@ -76,7 +76,7 @@ pub fn monster_action(
 #[system]
 #[read_component(Player)]
 #[read_component(Body)]
-#[read_component(Coordinates)]
+#[read_component(Position)]
 pub fn update_map_and_position(
     world: &mut SubWorld,
     #[resource] map: &mut Map,
@@ -86,20 +86,20 @@ pub fn update_map_and_position(
         map.blocked[index] = tile.blocking;
     }
 
-    let mut body_query = <(&Body, &Coordinates)>::query();
+    let mut body_query = <(&Body, &Position)>::query();
     for (body, coordinates) in body_query.iter_mut(world) {
         if body.blocking {
-            let index = map.index(coordinates.position());
+            let index = map.index(*coordinates);
             map.blocked[index] = true;
         }
     }
-    let mut player_query = <&Coordinates>::query().filter(component::<Player>());
+    let mut player_query = <&Position>::query().filter(component::<Player>());
     let player_coordinates = player_query.iter(world).next().unwrap();
-    shared_info.player_position = player_coordinates.position();
+    shared_info.player_position = *player_coordinates;
 }
 
 #[system(for_each)]
-#[write_component(Coordinates)]
+#[write_component(Position)]
 pub fn move_actions(
     cmd: &mut CommandBuffer,
     world: &mut SubWorld,
@@ -107,18 +107,18 @@ pub fn move_actions(
     entity: &Entity,
     #[resource] map: &mut Map,
 ) {
-    let mut query = <&mut Coordinates>::query();
+    let mut query = <&mut Position>::query();
 
     let coordinates = query.get_mut(world, move_action.entity);
     if let Ok(coordinates) = coordinates {
-        let old_position = coordinates.position();
+        let old_position = coordinates.clone();
         let new_position = (
             coordinates.x + move_action.dx,
             coordinates.y + move_action.dy,
         )
             .into();
         if !map.is_blocked(new_position) {
-            coordinates.set_position(new_position);
+            coordinates.set_position(&new_position);
             // Update map of blocked. It can seem useless but if not for that code,
             // the next entity might try to also move on the same tile.
             let old_index = map.index(old_position);
@@ -199,7 +199,7 @@ pub fn damage(
 #[read_component(ProvidesHealing)]
 #[read_component(Consumable)]
 #[read_component(Burst)]
-#[read_component(Coordinates)]
+#[read_component(Position)]
 #[read_component(InflictsDamage)]
 #[write_component(CombatStats)]
 pub fn use_item(
@@ -232,7 +232,7 @@ pub fn use_item(
                 }
             }
 
-            for (entity, coordinates) in <(Entity, &Coordinates)>::query().iter(world) {
+            for (entity, coordinates) in <(Entity, &Position)>::query().iter(world) {
                 if positions.contains(&(coordinates.x, coordinates.y)) {
                     targets.push(*entity);
                 }
@@ -327,7 +327,7 @@ pub fn item_collection(
         owner: action.collected_by,
     };
     cmd.add_component(action.item, in_inventory);
-    cmd.remove_component::<Coordinates>(action.item);
+    cmd.remove_component::<Position>(action.item);
 
     let collector_name = <&Body>::query()
         .get(world, action.collected_by)
@@ -352,12 +352,12 @@ pub fn drop_item(
     cmd: &mut CommandBuffer,
     world: &mut SubWorld,
     intent: &DropItemIntent,
-    owner_coordinates: &Coordinates,
+    owner_coordinates: &Position,
     owner_entity: &Entity,
     #[resource] journal: &mut Journal,
 ) {
     cmd.remove_component::<DropItemIntent>(*owner_entity);
-    let item_coordinates = Coordinates {
+    let item_coordinates = Position {
         x: owner_coordinates.x,
         y: owner_coordinates.y,
     };

@@ -36,6 +36,21 @@ impl From<(i32, i32)> for Position {
     }
 }
 
+impl Position {
+    pub fn new(x: i32, y: i32) -> Self {
+        Position { x, y }
+    }
+
+    pub fn distance_to(&self, position: Position) -> f32 {
+        ((self.x - position.x).pow(2) as f32 + (self.y - position.y).pow(2) as f32).sqrt()
+    }
+
+    pub fn set_position(&mut self, position: &Position) {
+        self.x = position.x;
+        self.y = position.y;
+    }
+}
+
 #[derive(Clone)]
 pub struct Tile {
     pub blocking: bool,
@@ -164,7 +179,7 @@ pub fn make_map(world: &mut World, rng: &mut StdRng) -> Map {
 
             let (new_x, new_y) = new_room.center();
             if rooms.is_empty() {
-                let mut query = <&mut Coordinates>::query().filter(component::<Player>());
+                let mut query = <&mut Position>::query().filter(component::<Player>());
                 for coordinates in query.iter_mut(world) {
                     coordinates.x = new_x;
                     coordinates.y = new_y;
