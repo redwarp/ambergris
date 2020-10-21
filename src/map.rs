@@ -7,8 +7,8 @@ use field_of_vision::Map as FieldOfVisionMap;
 use legion::component;
 use legion::IntoQuery;
 use legion::World;
-use rand::rngs::StdRng;
 use rand::Rng;
+use rand::{rngs::StdRng, SeedableRng};
 
 const MAP_WIDTH: i32 = 80;
 const MAP_HEIGHT: i32 = 40;
@@ -73,6 +73,7 @@ impl Tile {
     }
 }
 
+#[derive(Debug)]
 struct Rect {
     x1: i32,
     x2: i32,
@@ -119,6 +120,11 @@ impl Map {
         self.blocked[self.index(position)]
     }
 
+    pub fn set_blocked(&mut self, position: Position, is_blocked: bool) {
+        let index = self.index(position);
+        self.blocked[index] = is_blocked;
+    }
+
     pub fn index(&self, position: Position) -> usize {
         let (x, y) = position.into();
         if x < 0 || x >= self.width || y < 0 || y >= self.height {
@@ -151,7 +157,8 @@ impl FieldOfVisionMap for Map {
     }
 }
 
-pub fn make_map(world: &mut World, rng: &mut StdRng) -> Map {
+pub fn make_map(world: &mut World, level: i32) -> Map {
+    let mut rng = StdRng::seed_from_u64(42 + level as u64);
     let map_size = MAP_HEIGHT as usize * MAP_WIDTH as usize;
     let mut map = Map {
         width: MAP_WIDTH,
@@ -160,7 +167,7 @@ pub fn make_map(world: &mut World, rng: &mut StdRng) -> Map {
         explored_tiles: vec![false; map_size],
         blocked: vec![false; map_size],
         player_fov: vec![],
-        depth: 1,
+        depth: level,
     };
 
     let mut rooms: Vec<Rect> = vec![];
@@ -175,35 +182,43 @@ pub fn make_map(world: &mut World, rng: &mut StdRng) -> Map {
         let failed = rooms.iter().any(|other| new_room.intersects_with(other));
 
         if !failed {
-            create_room(&new_room, &mut map);
-
-            let (new_x, new_y) = new_room.center();
-            if rooms.is_empty() {
-                let mut query = <&mut Position>::query().filter(component::<Player>());
-                for coordinates in query.iter_mut(world) {
-                    coordinates.x = new_x;
-                    coordinates.y = new_y;
-                }
-            } else {
-                let (prev_x, prev_y) = rooms[rooms.len() - 1].center();
-
-                if rng.gen::<bool>() {
-                    create_horizontal_tunnel(prev_x, new_x, prev_y, &mut map);
-                    create_vertical_tunnel(prev_y, new_y, new_x, &mut map);
-                } else {
-                    create_vertical_tunnel(prev_y, new_y, prev_x, &mut map);
-                    create_horizontal_tunnel(prev_x, new_x, new_y, &mut map)
-                }
-            }
-
-            if !rooms.is_empty() {
-                // Let's be cool and not put any monsters in the room.
-                place_objects(world, rng, &map, &new_room);
-            }
-
             rooms.push(new_room);
         }
     }
+
+    for (index, new_room) in rooms.iter().enumerate() {
+        create_room(&new_room, &mut map);
+
+        let (new_x, new_y) = new_room.center();
+        if index == 0 {
+            let mut query = <&mut Position>::query().filter(component::<Player>());
+            for coordinates in query.iter_mut(world) {
+                coordinates.x = new_x;
+                coordinates.y = new_y;
+            }
+        } else {
+            let (prev_x, prev_y) = rooms[index - 1].center();
+
+            if rng.gen::<bool>() {
+                create_horizontal_tunnel(prev_x, new_x, prev_y, &mut map);
+                create_vertical_tunnel(prev_y, new_y, new_x, &mut map);
+            } else {
+                create_vertical_tunnel(prev_y, new_y, prev_x, &mut map);
+                create_horizontal_tunnel(prev_x, new_x, new_y, &mut map)
+            }
+        }
+
+        if index == rooms.len() - 1 {
+            // Last room, let's place the exit.
+            place_stairs(world, &mut map, &new_room);
+            println!("Placing stairs in room {:?}", new_room);
+        }
+        if !rooms.is_empty() {
+            // Let's be cool and not put any monsters in the room.
+            place_objects(world, &mut rng, &map, &new_room);
+        }
+    }
+
     map
 }
 
@@ -260,4 +275,10 @@ fn place_objects(world: &mut World, rng: &mut StdRng, map: &Map, room: &Rect) {
             }
         }
     }
+}
+
+fn place_stairs(world: &mut World, map: &mut Map, room: &Rect) {
+    let (x, y) = room.center();
+    spawner::stairs(world, x, y);
+    map.set_blocked((x, y).into(), true);
 }

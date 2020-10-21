@@ -130,3 +130,16 @@ pub fn scroll_of_fireball(world: &mut World, x: i32, y: i32) {
         Consumable {},
     ));
 }
+
+pub fn stairs(world: &mut World, x: i32, y: i32) {
+    world.push((
+        Position { x, y },
+        Body {
+            name: "stairs".to_string(),
+            blocking: false,
+            char: '<',
+            color: palette::LIGHT_WALL,
+        },
+        Interactable::DownStairs,
+    ));
+}

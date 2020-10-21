@@ -1,4 +1,3 @@
-use crate::systems;
 use crate::{
     colors::{Color, BLACK, DARK_GREY, WHITE},
     components::{Body, CombatStats, Player},
@@ -10,6 +9,7 @@ use crate::{
     renderer::RenderContext,
     renderer::Renderable,
 };
+use crate::{game::Interact, systems};
 use crate::{inventory::Inventory, resources::SharedInfo};
 use graphics::character::CharacterCache;
 use graphics_buffer::BufferGlyphs;
@@ -18,31 +18,6 @@ use piston_window::*;
 use std::{collections::VecDeque, time::Instant};
 
 const GRID_SIZE: u32 = 16;
-
-const COLOR_DARK_WALL: Color = Color {
-    a: 255,
-    r: 0,
-    g: 0,
-    b: 100,
-};
-const COLOR_LIGHT_WALL: Color = Color {
-    a: 255,
-    r: 130,
-    g: 110,
-    b: 50,
-};
-const COLOR_DARK_GROUND: Color = Color {
-    a: 255,
-    r: 50,
-    g: 50,
-    b: 150,
-};
-const COLOR_LIGHT_GROUND: Color = Color {
-    a: 255,
-    r: 200,
-    g: 180,
-    b: 50,
-};
 const TORCH_RADIUS: i32 = 10;
 const FONT_NAME: &str = "fonts/CourierPrime-Regular.ttf";
 
@@ -150,6 +125,10 @@ impl Engine {
                         Targeting { item, range, burst },
                         pending_button.take(),
                     ),
+                    RunState::NextLevel => {
+                        state.next_level();
+                        RunState::Init
+                    }
                 };
 
                 state.resources.insert(new_run_state);
@@ -319,10 +298,10 @@ impl Engine {
                 let visible = map.is_in_player_fov(x, y);
                 let wall = map.tiles[x as usize + y as usize * map_width as usize].block_sight;
                 let color = match (visible, wall) {
-                    (false, true) => COLOR_DARK_WALL,
-                    (false, false) => COLOR_DARK_GROUND,
-                    (true, true) => COLOR_LIGHT_WALL,
-                    (true, false) => COLOR_LIGHT_GROUND,
+                    (false, true) => palette::DARK_WALL,
+                    (false, false) => palette::DARK_GROUND,
+                    (true, true) => palette::LIGHT_WALL,
+                    (true, false) => palette::LIGHT_GROUND,
                 };
 
                 let explored =
@@ -380,6 +359,10 @@ impl Engine {
                         }
                     }
                     Key::I => RunState::ShowInventory,
+                    Key::E => match state.interact() {
+                        Interact::Canceled => RunState::WaitForPlayerInput,
+                        Interact::WentDownstairs => RunState::NextLevel,
+                    },
                     Key::Escape => RunState::Exit,
                     Key::Space => RunState::PlayerTurn,
                     _ => RunState::WaitForPlayerInput,

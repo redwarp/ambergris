@@ -57,7 +57,7 @@ impl State {
                         dy,
                         entity: self.player_entity,
                     },));
-                };
+                }
             }
         }
     }
@@ -184,6 +184,74 @@ impl State {
             journal.log(text);
         }
     }
+
+    pub fn interact(&self) -> Interact {
+        let player_position = *<&Position>::query()
+            .get(&self.world, self.player_entity)
+            .unwrap();
+
+        for (_, interactable) in <(&Position, &Interactable)>::query()
+            .iter(&self.world)
+            .filter(|(&position, _)| player_position == position)
+        {
+            return match interactable {
+                Interactable::DownStairs => {
+                    println!("Going downstairs...");
+                    Interact::WentDownstairs
+                }
+            };
+        }
+
+        Interact::Canceled
+    }
+
+    pub fn next_level(&mut self) {
+        let to_delete = self.find_entity_attached_to_map();
+
+        for entity in to_delete {
+            self.world.remove(entity);
+        }
+
+        let level = if let Some(map) = self.resources.get::<Map>() {
+            map.depth + 1
+        } else {
+            0
+        };
+
+        let map = crate::map::make_map(&mut self.world, level);
+        self.resources.insert(map);
+    }
+
+    pub fn find_entity_attached_to_map(&mut self) -> Vec<Entity> {
+        let entities: Vec<Entity> = <Entity>::query()
+            .filter(!component::<Player>())
+            .iter(&self.world)
+            .cloned()
+            .collect();
+
+        let mut to_delete = vec![];
+        for entity in entities {
+            let mut should_delete = true;
+            let entry = self.world.entry(entity).unwrap();
+
+            if let Ok(in_inventory) = entry.get_component::<InInventory>() {
+                if in_inventory.owner == self.player_entity {
+                    should_delete = false;
+                }
+            }
+
+            if should_delete {
+                to_delete.push(entity);
+            }
+        }
+
+        to_delete
+    }
+}
+
+pub enum Interact {
+    Canceled,
+    WentDownstairs,
 }
 
 #[derive(PartialEq, Copy, Clone, Debug)]
@@ -194,6 +262,7 @@ pub enum RunState {
     AiTurn,
     Exit,
     Death,
+    NextLevel,
     ShowInventory,
     ShowTargeting {
         item: Entity,

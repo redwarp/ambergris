@@ -4,8 +4,7 @@ use crate::resources::SharedInfo;
 
 use game::Journal;
 use legion::{Resources, World};
-use rand::rngs::StdRng;
-use rand::SeedableRng;
+
 mod colors;
 mod components;
 mod game;
@@ -23,11 +22,10 @@ const SCREEN_WIDTH: i32 = 80;
 const SCREEN_HEIGHT: i32 = 50;
 
 fn main() {
-    let mut rng = StdRng::seed_from_u64(42);
     let mut world = World::default();
     let mut resources = Resources::default();
     let player_entity = spawner::player(&mut world, -1, -1);
-    let map = crate::map::make_map(&mut world, &mut rng);
+    let map = crate::map::make_map(&mut world, 1);
     let journal = Journal::new();
     resources.insert(map);
     resources.insert(journal);

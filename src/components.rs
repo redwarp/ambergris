@@ -87,3 +87,7 @@ pub struct UseItemIntent {
 pub struct DropItemIntent {
     pub item_entity: Entity,
 }
+
+pub enum Interactable {
+    DownStairs,
+}
