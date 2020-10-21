@@ -1,9 +1,9 @@
 use criterion::{criterion_group, criterion_main, Criterion};
-use field_of_vision::FovMap;
-use field_of_vision::SampleMap;
 use rand::{rngs::StdRng, Rng, SeedableRng};
 use rltk::Algorithm2D;
 use tcod::Map;
+use torchbearer::FovMap;
+use torchbearer::SampleMap;
 
 const WIDTH: i32 = 45;
 const HEIGHT: i32 = 45;

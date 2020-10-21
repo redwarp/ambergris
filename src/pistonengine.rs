@@ -16,6 +16,7 @@ use graphics_buffer::BufferGlyphs;
 use legion::*;
 use piston_window::*;
 use std::{collections::VecDeque, time::Instant};
+use torchbearer::field_of_view;
 
 const GRID_SIZE: u32 = 16;
 const TORCH_RADIUS: i32 = 10;
@@ -219,7 +220,7 @@ impl Engine {
         let map = state.resources.get::<Map>().unwrap();
         let shared_info = state.resources.get::<SharedInfo>().unwrap();
 
-        let selected = field_of_vision::field_of_view(
+        let selected = field_of_view(
             &*map,
             shared_info.player_position.x,
             shared_info.player_position.y,
@@ -238,7 +239,7 @@ impl Engine {
                 if burst <= 0 {
                     self.console.select(x, y)
                 } else {
-                    let burst_area = field_of_vision::field_of_view(&*map, x, y, burst, false);
+                    let burst_area = field_of_view(&*map, x, y, burst, false);
                     self.console.select_multiple(&burst_area[..]);
                 }
 

@@ -10,13 +10,13 @@ readme = "README.md"
 [dependencies]
 rand = "0.7.3"
 legion = "0.3.1"
-field_of_vision = { path = "field_of_vision" }
+torchbearer = { path = "torchbearer" }
 piston_window = "0.113.0"
 piston2d-graphics = "0.37.0"
 graphics_buffer = "0.7.5"
 
 [workspace]
-members = ["field_of_vision"]
+members = ["torchbearer"]
 
 [profile.release]
 lto = true

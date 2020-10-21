@@ -3,12 +3,12 @@ use crate::{
     spawner::{self, MonsterType},
 };
 
-use field_of_vision::Map as FieldOfVisionMap;
 use legion::component;
 use legion::IntoQuery;
 use legion::World;
 use rand::Rng;
 use rand::{rngs::StdRng, SeedableRng};
+use torchbearer::{field_of_view, Map as FieldOfVisionMap};
 
 const MAP_WIDTH: i32 = 80;
 const MAP_HEIGHT: i32 = 40;
@@ -143,7 +143,7 @@ impl Map {
     }
 
     pub fn calculate_player_fov(&mut self, x: i32, y: i32, radius: i32) {
-        self.player_fov = field_of_vision::field_of_view(self, x, y, radius, true);
+        self.player_fov = field_of_view(self, x, y, radius, true);
     }
 }
 

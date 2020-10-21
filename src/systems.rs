@@ -10,6 +10,7 @@ use legion::Entity;
 use legion::IntoQuery;
 use legion::Schedule;
 use legion::{component, Write};
+use torchbearer::field_of_view;
 
 pub fn game_schedule() -> Schedule {
     Schedule::builder()
@@ -225,7 +226,7 @@ pub fn use_item(
 
             match radius {
                 Some(radius) => {
-                    positions = field_of_vision::field_of_view(map, x, y, radius, false);
+                    positions = field_of_view(map, x, y, radius, false);
                 }
                 None => {
                     positions = vec![(x, y)];

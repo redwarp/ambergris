@@ -34,12 +34,12 @@ dependencies = [
 name = "ambergris"
 version = "0.1.0"
 dependencies = [
- "field_of_vision",
  "graphics_buffer",
  "legion",
  "piston2d-graphics",
  "piston_window",
  "rand",
+ "torchbearer",
 ]
 
 [[package]]
@@ -245,9 +245,9 @@ dependencies = [
 
 [[package]]
 name = "bstr"
-version = "0.2.13"
+version = "0.2.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "31accafdb70df7871592c058eca3985b71104e15ac32f64706022c58867da931"
+checksum = "473fc6b38233f9af7baa94fb5852dca389e3d95b8e21c8e3719301462c5d9faf"
 dependencies = [
  "lazy_static 1.4.0",
  "memchr",
@@ -677,16 +677,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6ca8b296792113e1500fd935ae487be6e00ce318952a6880555554824d6ebf38"
 dependencies = [
  "serde",
-]
-
-[[package]]
-name = "field_of_vision"
-version = "0.1.0"
-dependencies = [
- "criterion",
- "rand",
- "rltk",
- "tcod",
 ]
 
 [[package]]
@@ -2167,9 +2157,9 @@ dependencies = [
 
 [[package]]
 name = "syn"
-version = "1.0.44"
+version = "1.0.45"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e03e57e4fcbfe7749842d53e24ccb9aa12b7252dbe5e91d2acad31834c8b8fdd"
+checksum = "ea9c5432ff16d6152371f808fb5a871cd67368171b09bb21b43df8e4a47a3556"
 dependencies = [
  "proc-macro2 1.0.24",
  "quote 1.0.7",
@@ -2285,6 +2275,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "75cf45bb0bef80604d001caaec0d09da99611b3c0fd39d3080468875cdb65645"
 dependencies = [
  "serde",
+]
+
+[[package]]
+name = "torchbearer"
+version = "0.1.0"
+dependencies = [
+ "criterion",
+ "rand",
+ "rltk",
+ "tcod",
 ]
 
 [[package]]
