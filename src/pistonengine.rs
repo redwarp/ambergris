@@ -16,7 +16,7 @@ use graphics_buffer::BufferGlyphs;
 use legion::*;
 use piston_window::*;
 use std::{collections::VecDeque, time::Instant};
-use torchbearer::field_of_view;
+use torchbearer::fov::field_of_view;
 
 const GRID_SIZE: u32 = 16;
 const TORCH_RADIUS: i32 = 10;

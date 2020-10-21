@@ -8,7 +8,7 @@ use legion::IntoQuery;
 use legion::World;
 use rand::Rng;
 use rand::{rngs::StdRng, SeedableRng};
-use torchbearer::{field_of_view, Map as FieldOfVisionMap};
+use torchbearer::fov::{field_of_view, Map as FieldOfVisionMap};
 
 const MAP_WIDTH: i32 = 80;
 const MAP_HEIGHT: i32 = 40;

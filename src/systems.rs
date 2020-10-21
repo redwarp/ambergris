@@ -10,7 +10,7 @@ use legion::Entity;
 use legion::IntoQuery;
 use legion::Schedule;
 use legion::{component, Write};
-use torchbearer::field_of_view;
+use torchbearer::fov::field_of_view;
 
 pub fn game_schedule() -> Schedule {
     Schedule::builder()

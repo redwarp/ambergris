@@ -1,9 +1,8 @@
 use criterion::{criterion_group, criterion_main, Criterion};
 use rand::{rngs::StdRng, Rng, SeedableRng};
 use rltk::Algorithm2D;
-use tcod::Map;
-use torchbearer::FovMap;
-use torchbearer::SampleMap;
+use tcod::Map as TcodMap;
+use torchbearer::fov::{field_of_view, Map};
 
 const WIDTH: i32 = 45;
 const HEIGHT: i32 = 45;
@@ -40,26 +39,63 @@ impl Algorithm2D for RltkMap {
     }
 }
 
-pub fn fov_benchmark_no_walls(c: &mut Criterion) {
-    let mut fov = FovMap::new(WIDTH, HEIGHT);
-
-    c.bench_function("fov_benchmark_no_walls", |bencher| {
-        bencher.iter(|| fov.calculate_fov(POSITION_X, POSITION_Y, RADIUS));
-    });
+pub struct SampleMap {
+    /// Vector to store the transparent tiles.
+    transparent: Vec<bool>,
+    /// Vector to store the computed field of vision.
+    vision: Vec<bool>,
+    /// The width of the map
+    width: i32,
+    /// The height of the map
+    height: i32,
+    /// The last position where the field of view was calculated. If never calculated, initialized to (-1, -1).
+    last_origin: (i32, i32),
 }
 
-pub fn fov_benchmark_random_walls(c: &mut Criterion) {
-    let mut fov = FovMap::new(WIDTH, HEIGHT);
-    let mut rng = StdRng::seed_from_u64(42);
-    for _ in 0..RANDOM_WALLS {
-        let (x, y) = (rng.gen_range(0, WIDTH), rng.gen_range(0, HEIGHT));
-        fov.set_transparent(x, y, false);
+impl Map for SampleMap {
+    fn dimensions(&self) -> (i32, i32) {
+        (self.width, self.height)
     }
-    fov.set_transparent(POSITION_X, POSITION_Y, true);
 
-    c.bench_function("fov_benchmark_random_walls", |bencher| {
-        bencher.iter(|| fov.calculate_fov(POSITION_X, POSITION_Y, RADIUS));
-    });
+    fn is_opaque(&self, x: i32, y: i32) -> bool {
+        let index = (x + y * self.width) as usize;
+        !self.transparent[index]
+    }
+}
+
+impl SampleMap {
+    pub fn new(width: i32, height: i32) -> Self {
+        if width <= 0 && height <= 0 {
+            panic!(format!(
+                "Width and height should be > 0, got ({},{})",
+                width, height
+            ));
+        }
+        SampleMap {
+            transparent: vec![true; (width * height) as usize],
+            vision: vec![false; (width * height) as usize],
+            width,
+            height,
+            last_origin: (-1, -1),
+        }
+    }
+    /// Flag a tile as transparent or visible.
+    pub fn set_transparent(&mut self, x: i32, y: i32, is_transparent: bool) {
+        self.transparent[(x + y * self.width) as usize] = is_transparent;
+    }
+
+    pub fn calculate_fov(&mut self, x: i32, y: i32, radius: i32) {
+        for see in self.vision.iter_mut() {
+            *see = false;
+        }
+
+        let visibles = field_of_view(self, x, y, radius, true);
+
+        for (x, y) in visibles {
+            self.vision[(x + y * self.width) as usize] = true
+        }
+        self.last_origin = (x, y);
+    }
 }
 
 pub fn vec_fov_benchmark_no_walls(c: &mut Criterion) {
@@ -85,7 +121,7 @@ pub fn vec_fov_benchmark_random_walls(c: &mut Criterion) {
 }
 
 pub fn tcod_benchmark_no_walls(c: &mut Criterion) {
-    let mut map = Map::new(WIDTH as i32, HEIGHT as i32);
+    let mut map = TcodMap::new(WIDTH as i32, HEIGHT as i32);
     for x in 0..WIDTH as i32 {
         for y in 0..HEIGHT as i32 {
             map.set(x, y, true, true);
@@ -101,7 +137,7 @@ pub fn tcod_benchmark_no_walls(c: &mut Criterion) {
 }
 
 pub fn tcod_benchmark_random_walls(c: &mut Criterion) {
-    let mut map = Map::new(WIDTH as i32, HEIGHT as i32);
+    let mut map = TcodMap::new(WIDTH as i32, HEIGHT as i32);
     for x in 0..WIDTH as i32 {
         for y in 0..HEIGHT as i32 {
             map.set(x, y, true, true);
@@ -156,8 +192,6 @@ pub fn rltk_benchmark_random_walls(c: &mut Criterion) {
 
 criterion_group!(
     benches,
-    fov_benchmark_no_walls,
-    fov_benchmark_random_walls,
     vec_fov_benchmark_no_walls,
     vec_fov_benchmark_random_walls,
     tcod_benchmark_no_walls,
