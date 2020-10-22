@@ -1,24 +1,4 @@
-use crate::bresenham::Bresenham;
-
-pub trait Map {
-    fn dimensions(&self) -> (i32, i32);
-    fn is_opaque(&self, x: i32, y: i32) -> bool;
-}
-
-fn is_bounded<M: Map>(map: &M, x: i32, y: i32) -> bool {
-    let (width, height) = map.dimensions();
-    x < 0 || y < 0 || x >= width || y >= height
-}
-
-fn assert_in_bounds<M: Map>(map: &M, x: i32, y: i32) {
-    let (width, height) = map.dimensions();
-    if is_bounded(map, x, y) {
-        panic!(format!(
-            "(x, y) should be between (0,0) and ({}, {}), got ({}, {})",
-            width, height, x, y
-        ));
-    }
-}
+use crate::{bresenham::Bresenham, Map};
 
 /// Using https://sites.google.com/site/jicenospam/visibilitydetermination
 /// See http://www.roguebasin.com/index.php?title=Comparative_study_of_field_of_view_algorithms_for_2D_grid_based_worlds
@@ -180,6 +160,21 @@ pub fn field_of_view<T: Map>(
             .collect()
     } else {
         visibles
+    }
+}
+
+fn is_out_of_bounds<M: Map>(map: &M, x: i32, y: i32) -> bool {
+    let (width, height) = map.dimensions();
+    x < 0 || y < 0 || x >= width || y >= height
+}
+
+fn assert_in_bounds<M: Map>(map: &M, x: i32, y: i32) {
+    let (width, height) = map.dimensions();
+    if is_out_of_bounds(map, x, y) {
+        panic!(format!(
+            "(x, y) should be between (0,0) and ({}, {}), got ({}, {})",
+            width, height, x, y
+        ));
     }
 }
 

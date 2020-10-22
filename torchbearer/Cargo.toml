@@ -1,6 +1,6 @@
 [package]
 name = "torchbearer"
-version = "0.2.0"
+version = "0.3.0"
 authors = ["Redwarp <redwarp@gmail.com>"]
 edition = "2018"
 
@@ -8,13 +8,17 @@ edition = "2018"
 [dependencies]
 
 [dev-dependencies]
+bracket-pathfinding = "0.8.1"
 criterion = "0.3.3"
-tcod = "0.15.0"
 rand = "0.7.3"
-rltk = "0.8.1"
+tcod = "0.15.0"
 
 [[bench]]
 name = "fov_bench"
+harness = false
+
+[[bench]]
+name = "astar_bench"
 harness = false
 
 [profile.release]

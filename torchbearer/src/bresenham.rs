@@ -13,13 +13,10 @@
 //! Example:
 //!
 //! ```rust
-//! mod bresenham;
-//! use crate::bresenham::Bresenham;
+//! use torchbearer::bresenham::Bresenham;
 //!
-//! fn main() {
-//!     for (x, y) in Bresenham::new((0, 1), (6, 4)) {
-//!         println!("{}, {}", x, y);
-//!     }
+//! for (x, y) in Bresenham::new((0, 1), (6, 4)) {
+//!     println!("{}, {}", x, y);
 //! }
 //! ```
 //!
