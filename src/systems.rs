@@ -226,7 +226,7 @@ pub fn use_item(
 
             match radius {
                 Some(radius) => {
-                    positions = field_of_view(map, x, y, radius, false);
+                    positions = field_of_view(map, (x, y), radius, false);
                 }
                 None => {
                     positions = vec![(x, y)];

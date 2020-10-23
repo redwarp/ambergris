@@ -1,14 +1,14 @@
-use crate::{bresenham::Bresenham, Map};
+use crate::{bresenham::Bresenham, Map, Position};
 
 /// Using https://sites.google.com/site/jicenospam/visibilitydetermination
 /// See http://www.roguebasin.com/index.php?title=Comparative_study_of_field_of_view_algorithms_for_2D_grid_based_worlds
 pub fn field_of_view<T: Map>(
     map: &T,
-    x: i32,
-    y: i32,
+    from: Position,
     radius: i32,
     include_walls: bool,
 ) -> Vec<(i32, i32)> {
+    let (x, y) = from;
     let radius_square = radius.pow(2);
     assert_in_bounds(map, x, y);
 
@@ -301,7 +301,7 @@ mod tests {
                 *see = false;
             }
 
-            let visibles = field_of_view(self, x, y, radius, true);
+            let visibles = field_of_view(self, (x, y), radius, true);
 
             for (x, y) in visibles {
                 self.vision[(x + y * self.width) as usize] = true

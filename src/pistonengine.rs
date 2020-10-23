@@ -222,8 +222,7 @@ impl Engine {
 
         let selected = field_of_view(
             &*map,
-            shared_info.player_position.x,
-            shared_info.player_position.y,
+            (shared_info.player_position.x, shared_info.player_position.y),
             range,
             false,
         );
@@ -239,7 +238,7 @@ impl Engine {
                 if burst <= 0 {
                     self.console.select(x, y)
                 } else {
-                    let burst_area = field_of_view(&*map, x, y, burst, false);
+                    let burst_area = field_of_view(&*map, (x, y), burst, false);
                     self.console.select_multiple(&burst_area[..]);
                 }
 

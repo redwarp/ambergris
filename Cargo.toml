@@ -5,6 +5,7 @@ authors = ["Redwarp <redwarp@gmail.com>"]
 edition = "2018"
 description = "Every journey must start somewhere."
 readme = "README.md"
+license = "Apache-2.0"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [dependencies]

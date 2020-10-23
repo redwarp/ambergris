@@ -5,6 +5,8 @@ authors = ["Redwarp <redwarp@gmail.com>"]
 edition = "2018"
 description = "Find your path in darkerer dungeons."
 readme = "README.md"
+license = "Apache-2.0"
+keywords = ["gamedev", "pathfinding", "field-of-view"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [dependencies]
