@@ -1,13 +1,69 @@
-use crate::{bresenham::LineBresenham, Map, Point};
+//! Collection of utility function to calculate field of vision.
 
-/// Using https://sites.google.com/site/jicenospam/visibilitydetermination
-/// See http://www.roguebasin.com/index.php?title=Comparative_study_of_field_of_view_algorithms_for_2D_grid_based_worlds
-pub fn field_of_view<T: Map>(
-    map: &T,
-    from: Point,
-    radius: i32,
-    include_walls: bool,
-) -> Vec<(i32, i32)> {
+use crate::{bresenham::BresenhamLine, Map, Point};
+
+/// An implementation of the field of view algorithm using basic raycasting.
+/// Returns a vector containing all points visible from the starting position, including the starting position.
+///
+/// Implement the algorithm found on the [visibility determination](https://sites.google.com/site/jicenospam/visibilitydetermination).
+/// For a comparison of the different raycasting types, advantages and disavantages, see
+/// [roguebasin's comparison](http://www.roguebasin.com/index.php?title=Comparative_study_of_field_of_view_algorithms_for_2D_grid_based_worlds)
+///
+/// # Arguments
+///
+/// * `map` - A struct implementing the `Map` trait.
+/// * `from` - the origin/center of the field of vision.
+/// * `radius` - how far the vision should go.
+///
+/// # Examples
+/// ```
+/// use torchbearer::{Map, Point};
+/// use torchbearer::fov::field_of_view;
+///
+/// struct SampleMap {
+///     width: i32,
+///     height: i32,
+///     transparent: Vec<bool>,
+/// }
+///
+/// impl SampleMap {
+///     fn new(width: i32, height: i32) -> Self {
+///          // (…)
+/// #        SampleMap {
+/// #            width,
+/// #            height,
+/// #            transparent: vec![true; (width * height) as usize],
+/// #        }
+///    }
+/// }
+///
+/// impl Map for SampleMap {
+///     fn dimensions(&self) -> (i32, i32) {
+///         (self.width, self.height)
+///     }
+///
+///     fn is_transparent(&self, x: i32, y: i32) -> bool {
+///         self.transparent[(x + y * self.width) as usize]
+///     }
+///
+///     fn is_walkable(&self, x: i32, y: i32) -> bool {
+///         // field of vision only considers transparency.
+///         todo!("Not used in field of view.")
+///     }
+/// }
+///
+/// let sample_map = SampleMap::new(16, 10);
+///
+/// // (…) You probably want at this point to add some walls to your map.
+/// let from = (1,1);
+/// let radius = 5;
+/// let visible_positions = field_of_view(&sample_map, from, radius);
+///
+/// for visible_position in visible_positions {
+///     // (…)
+/// }
+/// ```
+pub fn field_of_view<T: Map>(map: &T, from: Point, radius: i32) -> Vec<(i32, i32)> {
     let (x, y) = from;
     let radius_square = radius.pow(2);
     assert_in_bounds(map, x, y);
@@ -141,7 +197,7 @@ pub fn field_of_view<T: Map>(
         offset_y,
     );
 
-    let visibles: Vec<(i32, i32)> = visibles
+    visibles
         .iter()
         .enumerate()
         .filter(|&(_index, visible)| *visible)
@@ -151,16 +207,7 @@ pub fn field_of_view<T: Map>(
                 index as i32 / sub_width + offset_y,
             )
         })
-        .collect();
-
-    if !include_walls {
-        visibles
-            .into_iter()
-            .filter(|&(x, y)| map.is_transparent(x, y))
-            .collect()
-    } else {
-        visibles
-    }
+        .collect()
 }
 
 fn is_out_of_bounds<M: Map>(map: &M, x: i32, y: i32) -> bool {
@@ -189,7 +236,7 @@ fn cast_ray<T: Map>(
     offset_y: i32,
 ) {
     let (origin_x, origin_y) = origin;
-    let bresenham = LineBresenham::new(origin, destination).skip(1);
+    let bresenham = BresenhamLine::new(origin, destination).skip(1);
     for (x, y) in bresenham {
         let distance = (x - origin_x).pow(2) + (y - origin_y).pow(2);
         // If we are within radius, or if we ignore radius whatsoever.
@@ -306,7 +353,7 @@ mod tests {
                 *see = false;
             }
 
-            let visibles = field_of_view(self, (x, y), radius, true);
+            let visibles = field_of_view(self, (x, y), radius);
 
             for (x, y) in visibles {
                 self.vision[(x + y * self.width) as usize] = true

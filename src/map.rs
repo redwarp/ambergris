@@ -144,7 +144,7 @@ impl Map {
     }
 
     pub fn calculate_player_fov(&mut self, x: i32, y: i32, radius: i32) {
-        self.player_fov = field_of_view(self, (x, y), radius, true);
+        self.player_fov = field_of_view(self, (x, y), radius);
     }
 }
 

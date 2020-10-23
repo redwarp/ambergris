@@ -1,3 +1,5 @@
+//! Collection of bresenham implementation of lines, circles, … as Iterable.
+
 use core::iter::Iterator;
 
 use crate::Point;
@@ -13,12 +15,12 @@ use crate::Point;
 /// calculates coordinates without knowing anything about drawing methods or
 /// surfaces.
 ///
-/// Example:
+/// # Example
 ///
 /// ```rust
-/// use torchbearer::bresenham::LineBresenham;
+/// use torchbearer::bresenham::BresenhamLine;
 ///
-/// for (x, y) in LineBresenham::new((0, 1), (6, 4)) {
+/// for (x, y) in BresenhamLine::new((0, 1), (6, 4)) {
 ///     println!("{}, {}", x, y);
 /// }
 /// ```
@@ -34,7 +36,7 @@ use crate::Point;
 /// (5, 3)
 /// (6, 4)
 /// ```
-pub struct LineBresenham {
+pub struct BresenhamLine {
     x: i32,
     y: i32,
     dx: i32,
@@ -107,11 +109,10 @@ impl Octant {
     }
 }
 
-impl LineBresenham {
-    /// Creates a new iterator.Yields intermediate points between `start`
+impl BresenhamLine {
+    /// Creates a new iterator. Yields intermediate points between `start`
     /// and `end`, inclusive.
-    #[inline]
-    pub fn new(start: Point, end: Point) -> LineBresenham {
+    pub fn new(start: Point, end: Point) -> BresenhamLine {
         let octant = Octant::from_points(start, end);
 
         let start = octant.to_octant0(start);
@@ -120,7 +121,7 @@ impl LineBresenham {
         let dx = end.0 - start.0;
         let dy = end.1 - start.1;
 
-        LineBresenham {
+        BresenhamLine {
             x: start.0,
             y: start.1,
             dx,
@@ -133,9 +134,9 @@ impl LineBresenham {
     }
 }
 
-impl ExactSizeIterator for LineBresenham {}
+impl ExactSizeIterator for BresenhamLine {}
 
-impl Iterator for LineBresenham {
+impl Iterator for BresenhamLine {
     type Item = Point;
 
     #[inline]
@@ -171,14 +172,113 @@ impl Iterator for LineBresenham {
     }
 }
 
+/// Iterator-based Bresenham's circle drawing algorithm.
+///
+/// [Bresenham's circle drawing algorithm](http://members.chello.at/~easyfilter/bresenham.html)
+/// is a fast algorithm to draw the circonference of a circle.
+///
+/// # Example
+///
+/// ```
+/// use torchbearer::bresenham::BresenhamCircle;
+///
+/// let center = (0, 0);
+/// let radius = 2;
+/// for (x,y) in BresenhamCircle::new(center, radius) {
+///     println!("{}, {}", x, y);
+/// }
+/// ```
+///
+/// Will print
+///
+/// ```text
+/// (2, 0)
+/// (2, 1)
+/// (1, 2)
+/// (0, 2)                       . . . . . . .
+/// (-1, 2)                      . . # # # . .
+/// (-2, 1)                      . # . . . # .
+/// (-2, 0)   corresponding to   . # . x . # .
+/// (-2, -1)                     . # . . . # .
+/// (-1, -2)                     . . # # # . .
+/// (0, -2)                      . . . . . . .
+/// (1, -2)
+/// (2, -1)
+/// ```
+pub struct BresenhamCircle {
+    center: Point,
+    original_radius: i32,
+    radius: i32,
+    x: i32,
+    y: i32,
+    err: i32,
+    current_quadrant: i32,
+}
+
+impl BresenhamCircle {
+    /// Create new iterator. Yield all points on the circle of center and radius.
+    pub fn new(center: Point, radius: i32) -> Self {
+        BresenhamCircle {
+            center,
+            original_radius: radius,
+            radius,
+            x: -radius,
+            y: 0,
+            err: 2 - 2 * radius,
+            current_quadrant: 0,
+        }
+    }
+}
+
+impl Iterator for BresenhamCircle {
+    type Item = Point;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.x >= 0 {
+            None
+        } else {
+            let point = match self.current_quadrant {
+                0 => (self.center.0 - self.x, self.center.1 + self.y),
+                1 => (self.center.0 - self.y, self.center.1 - self.x),
+                2 => (self.center.0 + self.x, self.center.1 - self.y),
+                3 => (self.center.0 + self.y, self.center.1 + self.x),
+                _ => unreachable!(),
+            };
+
+            // We went through the points of 4 quadrants, moving on.
+            self.radius = self.err;
+            if self.radius <= self.y {
+                self.y += 1;
+                self.err += self.y * 2 + 1;
+            }
+            if self.radius > self.x || self.err > self.y {
+                self.x += 1;
+                self.err += self.x * 2 + 1;
+            }
+
+            if self.x >= 0 && self.current_quadrant < 3 {
+                self.current_quadrant = (self.current_quadrant + 1) % 4;
+                // Reset for next quadrant
+                self.radius = self.original_radius;
+                self.x = -self.original_radius;
+                self.y = 0;
+                self.err = 2 - 2 * self.original_radius;
+            }
+
+            Some(point)
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
-    use super::LineBresenham;
+    use super::BresenhamCircle;
+    use super::BresenhamLine;
     use std::vec::Vec;
 
     #[test]
     fn test_wp_example() {
-        let bi = LineBresenham::new((0, 1), (6, 4));
+        let bi = BresenhamLine::new((0, 1), (6, 4));
         let len = bi.len();
         let res: Vec<_> = bi.collect();
 
@@ -191,7 +291,7 @@ mod tests {
 
     #[test]
     fn test_inverse_wp() {
-        let bi = LineBresenham::new((6, 4), (0, 1));
+        let bi = BresenhamLine::new((6, 4), (0, 1));
         let len = bi.len();
         let res: Vec<_> = bi.collect();
 
@@ -204,7 +304,7 @@ mod tests {
 
     #[test]
     fn test_straight_hline() {
-        let bi = LineBresenham::new((2, 3), (5, 3));
+        let bi = BresenhamLine::new((2, 3), (5, 3));
         let len = bi.len();
         let res: Vec<_> = bi.collect();
 
@@ -214,11 +314,36 @@ mod tests {
 
     #[test]
     fn test_straight_vline() {
-        let bi = LineBresenham::new((2, 3), (2, 6));
+        let bi = BresenhamLine::new((2, 3), (2, 6));
         let len = bi.len();
         let res: Vec<_> = bi.collect();
 
         assert_eq!(res, [(2, 3), (2, 4), (2, 5), (2, 6)]);
         assert_eq!(len, 4);
+    }
+
+    #[test]
+    fn circle_contiguous() {
+        let circle = BresenhamCircle::new((0, 0), 2);
+
+        let res: Vec<_> = circle.collect();
+
+        assert_eq!(
+            res,
+            [
+                (2, 0),
+                (2, 1),
+                (1, 2),
+                (0, 2),
+                (-1, 2),
+                (-2, 1),
+                (-2, 0),
+                (-2, -1),
+                (-1, -2),
+                (0, -2),
+                (1, -2),
+                (2, -1)
+            ]
+        );
     }
 }

@@ -1,5 +1,6 @@
 use crate::map::Map;
 use crate::resources::SharedInfo;
+use crate::utils::field_of_view_no_walls;
 use crate::{colors::DARK_RED, game::Journal};
 use crate::{components::*, game::Ai};
 use crate::{game::RunState, map::Position};
@@ -10,7 +11,6 @@ use legion::Entity;
 use legion::IntoQuery;
 use legion::Schedule;
 use legion::{component, Write};
-use torchbearer::fov::field_of_view;
 
 pub fn game_schedule() -> Schedule {
     Schedule::builder()
@@ -226,7 +226,7 @@ pub fn use_item(
 
             match radius {
                 Some(radius) => {
-                    positions = field_of_view(map, (x, y), radius, false);
+                    positions = field_of_view_no_walls(map, (x, y), radius);
                 }
                 None => {
                     positions = vec![(x, y)];

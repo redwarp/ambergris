@@ -81,8 +81,7 @@ pub fn torchbearer_fov_no_walls(c: &mut Criterion) {
     let map = SampleMap::new(WIDTH, HEIGHT);
 
     c.bench_function("torchbearer_fov_no_walls", |bencher| {
-        bencher
-            .iter(|| torchbearer::fov::field_of_view(&map, (POSITION_X, POSITION_Y), RADIUS, true));
+        bencher.iter(|| torchbearer::fov::field_of_view(&map, (POSITION_X, POSITION_Y), RADIUS));
     });
 }
 
@@ -90,8 +89,7 @@ pub fn torchbearer_fov_random_walls(c: &mut Criterion) {
     let map = SampleMap::new(WIDTH, HEIGHT).randomize_walls();
 
     c.bench_function("torchbearer_fov_random_walls", |bencher| {
-        bencher
-            .iter(|| torchbearer::fov::field_of_view(&map, (POSITION_X, POSITION_Y), RADIUS, true));
+        bencher.iter(|| torchbearer::fov::field_of_view(&map, (POSITION_X, POSITION_Y), RADIUS));
     });
 }
 

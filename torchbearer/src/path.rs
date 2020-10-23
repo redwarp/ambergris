@@ -1,3 +1,5 @@
+//! Collection of utility functions to find path.
+
 use std::{
     cmp::Ordering,
     collections::{BinaryHeap, HashMap},
@@ -15,9 +17,9 @@ use crate::{Map, Point};
 ///
 /// # Arguments
 ///
-/// * `map` - A struct implementing the `Map` trait.
-/// * `from` - the origin
-/// * `to` - the destination
+/// * `map` - a struct implementing the `Map` trait.
+/// * `from` - the origin.
+/// * `to` - the destination.
 ///
 /// # Examples
 /// ```
@@ -46,7 +48,7 @@ use crate::{Map, Point};
 ///         (self.width, self.height)
 ///     }
 ///
-///     fn is_transparent(&self, _x: i32, _y: i32) -> bool {
+///     fn is_transparent(&self, x: i32, y: i32) -> bool {
 ///         // pathfinding only considers walkability.
 ///         todo!("Not used in pathfinding.")
 ///     }
@@ -222,7 +224,7 @@ impl PartialOrd for State {
 
 #[cfg(test)]
 mod tests {
-    use crate::{bresenham::LineBresenham, Map, Point};
+    use crate::{bresenham::BresenhamLine, Map, Point};
 
     use super::astar_path;
 
@@ -242,7 +244,7 @@ mod tests {
         }
 
         fn build_wall(&mut self, from: Point, to: Point) {
-            let bresenham = LineBresenham::new(from, to);
+            let bresenham = BresenhamLine::new(from, to);
             for (x, y) in bresenham {
                 self.walkable[(x + y * self.width) as usize] = false;
             }

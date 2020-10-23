@@ -8,6 +8,7 @@ use crate::{
     palette,
     renderer::RenderContext,
     renderer::Renderable,
+    utils::field_of_view_no_walls,
 };
 use crate::{game::Interact, systems};
 use crate::{inventory::Inventory, resources::SharedInfo};
@@ -16,7 +17,6 @@ use graphics_buffer::BufferGlyphs;
 use legion::*;
 use piston_window::*;
 use std::{collections::VecDeque, time::Instant};
-use torchbearer::fov::field_of_view;
 
 const GRID_SIZE: u32 = 16;
 const TORCH_RADIUS: i32 = 10;
@@ -220,11 +220,10 @@ impl Engine {
         let map = state.resources.get::<Map>().unwrap();
         let shared_info = state.resources.get::<SharedInfo>().unwrap();
 
-        let selected = field_of_view(
+        let selected = field_of_view_no_walls(
             &*map,
             (shared_info.player_position.x, shared_info.player_position.y),
             range,
-            false,
         );
         self.console.overlay(&selected[..]);
         self.target_area = Some(selected);
@@ -238,7 +237,7 @@ impl Engine {
                 if burst <= 0 {
                     self.console.select(x, y)
                 } else {
-                    let burst_area = field_of_view(&*map, (x, y), burst, false);
+                    let burst_area = field_of_view_no_walls(&*map, (x, y), burst);
                     self.console.select_multiple(&burst_area[..]);
                 }
 

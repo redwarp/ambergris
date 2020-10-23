@@ -16,6 +16,7 @@ mod renderer;
 mod resources;
 mod spawner;
 mod systems;
+mod utils;
 
 // actual size of the window
 const SCREEN_WIDTH: i32 = 80;

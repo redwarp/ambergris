@@ -1,7 +1,7 @@
 use bracket_pathfinding::prelude::{Algorithm2D, SmallVec};
 use criterion::{criterion_group, criterion_main, Criterion};
 use tcod::Map as TcodMap;
-use torchbearer::{bresenham::LineBresenham, path::astar_path, Map, Point};
+use torchbearer::{bresenham::BresenhamLine, path::astar_path, Map, Point};
 
 const WIDTH: i32 = 20;
 const HEIGHT: i32 = 20;
@@ -28,7 +28,7 @@ impl TestMap {
     }
 
     fn build_wall(&mut self, from: Point, to: Point) {
-        let bresenham = LineBresenham::new(from, to);
+        let bresenham = BresenhamLine::new(from, to);
         for (x, y) in bresenham {
             self.tiles[(x + y * self.width) as usize] = false;
         }
@@ -127,7 +127,7 @@ pub fn bracket_astar(c: &mut Criterion) {
 
 pub fn tcod_astar(c: &mut Criterion) {
     fn build_wall(map: &mut TcodMap, from: Point, to: Point) {
-        let bresenham = LineBresenham::new(from, to);
+        let bresenham = BresenhamLine::new(from, to);
         for (x, y) in bresenham {
             map.set(x, y, false, false);
         }
