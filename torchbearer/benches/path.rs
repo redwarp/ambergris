@@ -1,6 +1,10 @@
 use bracket_pathfinding::prelude::{Algorithm2D, SmallVec};
 use criterion::{criterion_group, criterion_main, Criterion};
+use tcod::Map as TcodMap;
 use torchbearer::{bresenham::Bresenham, path::astar_path, Map, Point};
+
+const WIDTH: i32 = 20;
+const HEIGHT: i32 = 20;
 
 struct TestMap {
     width: i32,
@@ -98,15 +102,19 @@ impl bracket_pathfinding::prelude::Algorithm2D for TestMap {
 }
 
 pub fn torchbearer_astar(c: &mut Criterion) {
-    let map = TestMap::new(20, 20).with_walls();
+    let map = TestMap::new(WIDTH, HEIGHT).with_walls();
+    let from = (1, 4);
+    let to = (10, 4);
 
     c.bench_function("torchbearer_astar", |bencher| {
-        bencher.iter(|| astar_path(&map, (1, 4), (10, 4)));
+        bencher.iter(|| astar_path(&map, from, to));
     });
+    let path = astar_path(&map, from, to).unwrap();
+    println!("{:?}", path);
 }
 
 pub fn bracket_astar(c: &mut Criterion) {
-    let map = TestMap::new(20, 20).with_walls();
+    let map = TestMap::new(WIDTH, HEIGHT).with_walls();
     let start = map.point2d_to_index((1, 4).into());
     let end = map.point2d_to_index((10, 4).into());
 
@@ -115,5 +123,34 @@ pub fn bracket_astar(c: &mut Criterion) {
     });
 }
 
-criterion_group!(benches, torchbearer_astar, bracket_astar);
+pub fn tcod_astar(c: &mut Criterion) {
+    fn build_wall(map: &mut TcodMap, from: Point, to: Point) {
+        let bresenham = Bresenham::new(from, to);
+        for (x, y) in bresenham {
+            map.set(x, y, false, false);
+        }
+    }
+
+    let mut map = TcodMap::new(WIDTH as i32, HEIGHT as i32);
+    for x in 0..WIDTH {
+        for y in 0..HEIGHT {
+            map.set(x, y, true, true);
+        }
+    }
+    build_wall(&mut map, (0, 3), (3, 3));
+    build_wall(&mut map, (3, 3), (3, 10));
+
+    let mut astar = tcod::pathfinding::AStar::new_from_map(map, 10.0);
+    let from = (1, 4);
+    let to = (10, 4);
+
+    c.bench_function("tcod_astar", |bencher| {
+        bencher.iter(|| astar.find(from, to));
+    });
+    astar.find(from, to);
+    let path: Vec<(i32, i32)> = astar.iter().collect();
+    println!("{:?}", path);
+}
+
+criterion_group!(benches, torchbearer_astar, bracket_astar, tcod_astar);
 criterion_main!(benches);

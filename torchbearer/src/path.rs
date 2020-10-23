@@ -30,7 +30,7 @@ pub fn astar_path<T: Map>(map: &T, from: Point, to: Point) -> Option<Vec<Point>>
         }
 
         for next in neighboors(map, current) {
-            let new_cost = cost_so_far[&current] + 1.; // or weighted cost;
+            let new_cost = cost_so_far[&current] + cost(current, next);
 
             if !cost_so_far.contains_key(&next) || new_cost < cost_so_far[&next] {
                 cost_so_far.insert(next, new_cost);
@@ -45,6 +45,20 @@ pub fn astar_path<T: Map>(map: &T, from: Point, to: Point) -> Option<Vec<Point>>
     }
 
     reconstruct_path(from, to, came_from)
+}
+
+fn cost(from: Point, to: Point) -> f64 {
+    let basic = 1.;
+    let mut nudge = 0.;
+    let (x1, y1) = from;
+    let (x2, y2) = to;
+    if (x1 + y1) % 2 == 0 && x2 != x1 {
+        nudge = 1.
+    }
+    if (x1 + y1) % 2 == 1 && y2 != y1 {
+        nudge = 1.
+    }
+    basic + 0.001 * nudge
 }
 
 fn neighboors<T: Map>(map: &T, position: Point) -> Vec<Point> {
