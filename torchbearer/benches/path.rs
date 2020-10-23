@@ -48,8 +48,8 @@ impl Map for TestMap {
         (self.width, self.height)
     }
 
-    fn is_opaque(&self, _x: i32, _y: i32) -> bool {
-        false
+    fn is_transparent(&self, _x: i32, _y: i32) -> bool {
+        todo!("Not necessary for the bench");
     }
 
     fn is_walkable(&self, x: i32, y: i32) -> bool {
@@ -113,8 +113,6 @@ pub fn torchbearer_astar(c: &mut Criterion) {
     c.bench_function("torchbearer_astar", |bencher| {
         bencher.iter(|| astar_path(&map, from, to));
     });
-    let path = astar_path(&map, from, to).unwrap();
-    println!("{:?}", path);
 }
 
 pub fn bracket_astar(c: &mut Criterion) {
@@ -151,11 +149,7 @@ pub fn tcod_astar(c: &mut Criterion) {
     c.bench_function("tcod_astar", |bencher| {
         bencher.iter(|| astar.find(from, to));
     });
-    astar.find(from, to);
-    let path: Vec<(i32, i32)> = astar.iter().collect();
-    println!("{:?}", path);
 }
 
-criterion_group!(benches, torchbearer_astar);
-// criterion_group!(benches, torchbearer_astar, bracket_astar, tcod_astar);
+criterion_group!(benches, torchbearer_astar, bracket_astar, tcod_astar);
 criterion_main!(benches);

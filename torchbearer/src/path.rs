@@ -9,7 +9,7 @@ use crate::{Map, Point};
 /// Returns an optional vector containing the several points on the map to walk through, including the origin and destination.
 ///
 /// Implements the algorithm and fixes found on the
-/// [redblobgames.com](https://www.redblobgames.com/pathfinding/a-star/implementation.html#python-astar)
+/// [redblobgames.com](https://www.redblobgames.com/pathfinding/a-star/implementation.html#python-astar).
 ///
 /// Uses a binary heap as described in the [rust-lang](https://doc.rust-lang.org/stable/std/collections/binary_heap/) doc.
 ///
@@ -46,9 +46,9 @@ use crate::{Map, Point};
 ///         (self.width, self.height)
 ///     }
 ///
-///     fn is_opaque(&self, _x: i32, _y: i32) -> bool {
+///     fn is_transparent(&self, _x: i32, _y: i32) -> bool {
 ///         // pathfinding only considers walkability.
-///         todo!()
+///         todo!("Not used in pathfinding.")
 ///     }
 ///
 ///     fn is_walkable(&self, x: i32, y: i32) -> bool {
@@ -254,8 +254,8 @@ mod tests {
             (self.width, self.height)
         }
 
-        fn is_opaque(&self, _x: i32, _y: i32) -> bool {
-            false
+        fn is_transparent(&self, _x: i32, _y: i32) -> bool {
+            todo!("Not needed for pathfinding.");
         }
 
         fn is_walkable(&self, x: i32, y: i32) -> bool {

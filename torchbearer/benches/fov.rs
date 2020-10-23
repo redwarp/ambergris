@@ -24,9 +24,9 @@ impl Map for SampleMap {
         (self.width, self.height)
     }
 
-    fn is_opaque(&self, x: i32, y: i32) -> bool {
+    fn is_transparent(&self, x: i32, y: i32) -> bool {
         let index = (x + y * self.width) as usize;
-        !self.transparent[index]
+        self.transparent[index]
     }
 
     fn is_walkable(&self, _x: i32, _y: i32) -> bool {

@@ -2,16 +2,13 @@ use core::iter::Iterator;
 
 use crate::Point;
 
-/// Line-drawing iterator
+/// Iterator-based Bresenham's line drawing algorithm.
 ///
 /// Fork from https://github.com/mbr/bresenham-rs so that the iterator includes
-/// `start` and `end`
+/// `start` and `end`.
 ///
-/// Iterator-based Bresenham's line drawing algorithm
-///
-/// [Bresenham's line drawing algorithm]
-/// (https://en.wikipedia.org/wiki/Bresenham%27s_line_algorithm) is fast
-/// algorithm to draw a line between two points. This crate implements the fast
+/// [Bresenham's line drawing algorithm](https://en.wikipedia.org/wiki/Bresenham%27s_line_algorithm)
+/// is a fast algorithm to draw a line between two points. This implements the fast
 /// integer variant, using an iterator-based appraoch for flexibility. It
 /// calculates coordinates without knowing anything about drawing methods or
 /// surfaces.
@@ -35,6 +32,7 @@ use crate::Point;
 /// (3, 2)
 /// (4, 3)
 /// (5, 3)
+/// (6, 4)
 /// ```
 pub struct LineBresenham {
     x: i32,
@@ -125,12 +123,12 @@ impl LineBresenham {
         LineBresenham {
             x: start.0,
             y: start.1,
-            dx: dx,
-            dy: dy,
+            dx,
+            dy,
             x1: end.0,
             y1: end.1,
             diff: dy - dx,
-            octant: octant,
+            octant,
         }
     }
 }

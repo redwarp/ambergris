@@ -156,7 +156,7 @@ pub fn field_of_view<T: Map>(
     if !include_walls {
         visibles
             .into_iter()
-            .filter(|&(x, y)| !map.is_opaque(x, y))
+            .filter(|&(x, y)| map.is_transparent(x, y))
             .collect()
     } else {
         visibles
@@ -197,7 +197,7 @@ fn cast_ray<T: Map>(
             visibles[(x + y * width) as usize] = true;
         }
 
-        if map.is_opaque(x + offset_x, y + offset_y) {
+        if !map.is_transparent(x + offset_x, y + offset_y) {
             return;
         }
     }
@@ -219,8 +219,8 @@ fn post_process_vision<T: Map>(
     for x in minx..=maxx {
         for y in miny..=maxy {
             let index = (x + y * width) as usize;
-            let opaque = map.is_opaque(x + offset_x, y + offset_y);
-            if opaque && !visibles[index] {
+            let is_see_through = map.is_transparent(x + offset_x, y + offset_y);
+            if !is_see_through && !visibles[index] {
                 // We check for walls that are not in vision only.
                 let neighboor_x = x + dx;
                 let neighboor_y = y + dy;
@@ -228,8 +228,9 @@ fn post_process_vision<T: Map>(
                 let index_0 = (neighboor_x + y * width) as usize;
                 let index_1 = (x + neighboor_y * width) as usize;
 
-                if (!map.is_opaque(neighboor_x + offset_x, y + offset_y) && visibles[index_0])
-                    || (!map.is_opaque(x + offset_x, neighboor_y + offset_y) && visibles[index_1])
+                if (map.is_transparent(neighboor_x + offset_x, y + offset_y) && visibles[index_0])
+                    || (map.is_transparent(x + offset_x, neighboor_y + offset_y)
+                        && visibles[index_1])
                 {
                     visibles[index] = true;
                 }
@@ -269,9 +270,9 @@ mod tests {
             (self.width, self.height)
         }
 
-        fn is_opaque(&self, x: i32, y: i32) -> bool {
+        fn is_transparent(&self, x: i32, y: i32) -> bool {
             let index = (x + y * self.width) as usize;
-            !self.transparent[index]
+            self.transparent[index]
         }
 
         fn is_walkable(&self, _x: i32, _y: i32) -> bool {

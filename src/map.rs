@@ -153,8 +153,8 @@ impl FieldOfVisionMap for Map {
         (self.width, self.height)
     }
 
-    fn is_opaque(&self, x: i32, y: i32) -> bool {
-        self.tiles[(x + y * self.width) as usize].block_sight
+    fn is_transparent(&self, x: i32, y: i32) -> bool {
+        !self.tiles[(x + y * self.width) as usize].block_sight
     }
 
     fn is_walkable(&self, x: i32, y: i32) -> bool {
