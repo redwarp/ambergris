@@ -1,6 +1,6 @@
 use crate::{
     colors::{Color, BLACK, DARK_GREY, WHITE},
-    components::{Body, CombatStats, Player},
+    components::{Body, CombatStats, MagicStats, Player},
     game::{Journal, RunState, State, Targeting},
     inventory::InventoryAction,
     map::Map,
@@ -156,6 +156,8 @@ impl Engine {
                         let journal = state.resources.get::<Journal>().unwrap();
                         self.hud.update_journal(&journal);
                     }
+                    let (current, max) = current_player_mana(state).unwrap_or((0, 0));
+                    self.hud.mana_bar.update(current, max);
 
                     if let RunState::ShowTargeting {
                         item: _,
@@ -496,6 +498,14 @@ fn current_player_life(state: &State) -> Option<(i32, i32)> {
     })
 }
 
+fn current_player_mana(state: &State) -> Option<(i32, i32)> {
+    <&MagicStats>::query()
+        .get(&state.world, state.player_entity)
+        .map_or(None, |magic_stats| {
+            Some((magic_stats.mana, magic_stats.max_mana))
+        })
+}
+
 struct Console {
     origin: (i32, i32),
     width: i32,
@@ -707,6 +717,7 @@ struct Hud {
     width: i32,
     height: i32,
     health_bar: StatBar,
+    mana_bar: StatBar,
     tooltip: Option<String>,
     journal_entries: VecDeque<String>,
 }
@@ -719,6 +730,12 @@ impl Hud {
             health_bar: StatBar {
                 name: String::from("Health"),
                 color: palette::HEALTH,
+                current: 0,
+                max: 0,
+            },
+            mana_bar: StatBar {
+                name: String::from("Mana"),
+                color: palette::MANA,
                 current: 0,
                 max: 0,
             },
@@ -778,9 +795,16 @@ impl Renderable for Hud {
             (1, 1),
         );
 
+        self.mana_bar.render(
+            render_context.graphics,
+            render_context.character_cache,
+            render_context.context,
+            (25, 1),
+        );
+
         if let Some(tooltip) = &self.tooltip {
             crate::renderer::draw_text(
-                self.width / 2,
+                49,
                 1,
                 10,
                 WHITE.into(),

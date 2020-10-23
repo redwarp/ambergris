@@ -80,6 +80,10 @@ pub fn player(world: &mut World, x: i32, y: i32) -> Entity {
             attack: 5,
             defense: 2,
         },
+        MagicStats {
+            max_mana: 10,
+            mana: 10,
+        },
     ))
 }
 

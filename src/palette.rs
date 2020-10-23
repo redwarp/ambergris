@@ -4,6 +4,7 @@ pub const WINDOW_BACKGROUND: Color = Color::from_argb(0xaa000000);
 pub const SELECTED: Color = Color::from_argb(0x66ff0000);
 pub const OVERLAY: Color = Color::from_argb(0x3300ff00);
 pub const HEALTH: Color = Color::new(255, 191, 0, 0);
+pub const MANA: Color = Color::new(255, 0, 0, 191);
 pub const DARK_WALL: Color = Color::new(255, 0, 0, 100);
 pub const LIGHT_WALL: Color = Color {
     a: 255,

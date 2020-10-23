@@ -36,6 +36,11 @@ pub struct CombatStats {
     pub attack: i32,
 }
 
+pub struct MagicStats {
+    pub max_mana: i32,
+    pub mana: i32,
+}
+
 impl CombatStats {
     pub fn heal(&mut self, healing_amount: i32) {
         self.hp = (self.hp + healing_amount).max(0).min(self.max_hp);
