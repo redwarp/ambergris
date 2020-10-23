@@ -3,6 +3,8 @@ name = "torchbearer"
 version = "0.3.0"
 authors = ["Redwarp <redwarp@gmail.com>"]
 edition = "2018"
+description = "Find your path in darkerer dungeons."
+readme = "README.md"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [dependencies]
