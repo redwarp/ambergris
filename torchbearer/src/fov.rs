@@ -1,4 +1,4 @@
-use crate::{bresenham::Bresenham, Map, Point};
+use crate::{bresenham::LineBresenham, Map, Point};
 
 /// Using https://sites.google.com/site/jicenospam/visibilitydetermination
 /// See http://www.roguebasin.com/index.php?title=Comparative_study_of_field_of_view_algorithms_for_2D_grid_based_worlds
@@ -189,7 +189,7 @@ fn cast_ray<T: Map>(
     offset_y: i32,
 ) {
     let (origin_x, origin_y) = origin;
-    let bresenham = Bresenham::new(origin, destination).skip(1);
+    let bresenham = LineBresenham::new(origin, destination).skip(1);
     for (x, y) in bresenham {
         let distance = (x - origin_x).pow(2) + (y - origin_y).pow(2);
         // If we are within radius, or if we ignore radius whatsoever.

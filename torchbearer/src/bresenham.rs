@@ -1,42 +1,42 @@
-//! Fork from https://github.com/mbr/bresenham-rs so that the iterator includes
-//! `start` and `end`
-//!
-//! Iterator-based Bresenham's line drawing algorithm
-//!
-//! [Bresenham's line drawing algorithm]
-//! (https://en.wikipedia.org/wiki/Bresenham%27s_line_algorithm) is fast
-//! algorithm to draw a line between two points. This crate implements the fast
-//! integer variant, using an iterator-based appraoch for flexibility. It
-//! calculates coordinates without knowing anything about drawing methods or
-//! surfaces.
-//!
-//! Example:
-//!
-//! ```rust
-//! use torchbearer::bresenham::Bresenham;
-//!
-//! for (x, y) in Bresenham::new((0, 1), (6, 4)) {
-//!     println!("{}, {}", x, y);
-//! }
-//! ```
-//!
-//! Will print:
-//!
-//! ```text
-//! (0, 1)
-//! (1, 1)
-//! (2, 2)
-//! (3, 2)
-//! (4, 3)
-//! (5, 3)
-//! ```
-
 use core::iter::Iterator;
 
 use crate::Point;
 
 /// Line-drawing iterator
-pub struct Bresenham {
+///
+/// Fork from https://github.com/mbr/bresenham-rs so that the iterator includes
+/// `start` and `end`
+///
+/// Iterator-based Bresenham's line drawing algorithm
+///
+/// [Bresenham's line drawing algorithm]
+/// (https://en.wikipedia.org/wiki/Bresenham%27s_line_algorithm) is fast
+/// algorithm to draw a line between two points. This crate implements the fast
+/// integer variant, using an iterator-based appraoch for flexibility. It
+/// calculates coordinates without knowing anything about drawing methods or
+/// surfaces.
+///
+/// Example:
+///
+/// ```rust
+/// use torchbearer::bresenham::LineBresenham;
+///
+/// for (x, y) in LineBresenham::new((0, 1), (6, 4)) {
+///     println!("{}, {}", x, y);
+/// }
+/// ```
+///
+/// Will print:
+///
+/// ```text
+/// (0, 1)
+/// (1, 1)
+/// (2, 2)
+/// (3, 2)
+/// (4, 3)
+/// (5, 3)
+/// ```
+pub struct LineBresenham {
     x: i32,
     y: i32,
     dx: i32,
@@ -109,11 +109,11 @@ impl Octant {
     }
 }
 
-impl Bresenham {
+impl LineBresenham {
     /// Creates a new iterator.Yields intermediate points between `start`
     /// and `end`, inclusive.
     #[inline]
-    pub fn new(start: Point, end: Point) -> Bresenham {
+    pub fn new(start: Point, end: Point) -> LineBresenham {
         let octant = Octant::from_points(start, end);
 
         let start = octant.to_octant0(start);
@@ -122,7 +122,7 @@ impl Bresenham {
         let dx = end.0 - start.0;
         let dy = end.1 - start.1;
 
-        Bresenham {
+        LineBresenham {
             x: start.0,
             y: start.1,
             dx: dx,
@@ -135,9 +135,9 @@ impl Bresenham {
     }
 }
 
-impl ExactSizeIterator for Bresenham {}
+impl ExactSizeIterator for LineBresenham {}
 
-impl Iterator for Bresenham {
+impl Iterator for LineBresenham {
     type Item = Point;
 
     #[inline]
@@ -175,12 +175,12 @@ impl Iterator for Bresenham {
 
 #[cfg(test)]
 mod tests {
-    use super::Bresenham;
+    use super::LineBresenham;
     use std::vec::Vec;
 
     #[test]
     fn test_wp_example() {
-        let bi = Bresenham::new((0, 1), (6, 4));
+        let bi = LineBresenham::new((0, 1), (6, 4));
         let len = bi.len();
         let res: Vec<_> = bi.collect();
 
@@ -193,7 +193,7 @@ mod tests {
 
     #[test]
     fn test_inverse_wp() {
-        let bi = Bresenham::new((6, 4), (0, 1));
+        let bi = LineBresenham::new((6, 4), (0, 1));
         let len = bi.len();
         let res: Vec<_> = bi.collect();
 
@@ -206,7 +206,7 @@ mod tests {
 
     #[test]
     fn test_straight_hline() {
-        let bi = Bresenham::new((2, 3), (5, 3));
+        let bi = LineBresenham::new((2, 3), (5, 3));
         let len = bi.len();
         let res: Vec<_> = bi.collect();
 
@@ -216,7 +216,7 @@ mod tests {
 
     #[test]
     fn test_straight_vline() {
-        let bi = Bresenham::new((2, 3), (2, 6));
+        let bi = LineBresenham::new((2, 3), (2, 6));
         let len = bi.len();
         let res: Vec<_> = bi.collect();
 

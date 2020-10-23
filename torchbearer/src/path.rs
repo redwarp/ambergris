@@ -5,18 +5,79 @@ use std::{
 
 use crate::{Map, Point};
 
-/// https://www.redblobgames.com/pathfinding/a-star/implementation.html#python-astar
-/// Checking binary heap here: https://doc.rust-lang.org/stable/std/collections/binary_heap/
+/// An astar pathfinding implementation for a grid base map, where diagonal movements are disabled.
+/// Returns an optional vector containing the several points on the map to walk through, including the origin and destination.
+///
+/// Implements the algorithm and fixes found on the
+/// [redblobgames.com](https://www.redblobgames.com/pathfinding/a-star/implementation.html#python-astar)
+///
+/// Uses a binary heap as described in the [rust-lang](https://doc.rust-lang.org/stable/std/collections/binary_heap/) doc.
+///
+/// # Arguments
+///
+/// * `map` - A struct implementing the `Map` trait.
+/// * `from` - the origin
+/// * `to` - the destination
+///
+/// # Examples
+/// ```
+/// use torchbearer::{Map, Point};
+/// use torchbearer::path::astar_path;
+///
+/// struct SampleMap {
+///     width: i32,
+///     height: i32,
+///     walkable: Vec<bool>,
+/// }
+///
+/// impl SampleMap {
+///     fn new(width: i32, height: i32) -> Self {
+///          // (…)
+/// #        SampleMap {
+/// #            width,
+/// #            height,
+/// #            walkable: vec![true; (width * height) as usize],
+/// #        }
+///    }
+/// }
+///
+/// impl Map for SampleMap {
+///     fn dimensions(&self) -> (i32, i32) {
+///         (self.width, self.height)
+///     }
+///
+///     fn is_opaque(&self, _x: i32, _y: i32) -> bool {
+///         // pathfinding only considers walkability.
+///         todo!()
+///     }
+///
+///     fn is_walkable(&self, x: i32, y: i32) -> bool {
+///         self.walkable[(x + y * self.width) as usize]
+///     }
+/// }
+///
+/// let sample_map = SampleMap::new(16, 10);
+///
+/// // (…) You probably want at this point to add some walls to your map.
+///
+/// let path = astar_path(&sample_map, (1,1), (3,8));
+///
+/// if let Some(path) = astar_path(&sample_map, (1,1), (3,8)) {
+///     // (…)
+/// }
+/// ```
+
 pub fn astar_path<T: Map>(map: &T, from: Point, to: Point) -> Option<Vec<Point>> {
-    let mut frontier = BinaryHeap::new();
+    let capacity = rough_capacity(from, to);
+    let mut frontier = BinaryHeap::with_capacity(capacity);
 
     frontier.push(State {
         position: from,
         cost: 0.,
     });
 
-    let mut came_from: HashMap<Point, Option<Point>> = HashMap::new();
-    let mut cost_so_far: HashMap<Point, f64> = HashMap::new();
+    let mut came_from: HashMap<Point, Option<Point>> = HashMap::with_capacity(capacity);
+    let mut cost_so_far: HashMap<Point, f64> = HashMap::with_capacity(capacity);
     came_from.insert(from, None);
     cost_so_far.insert(from, 0.);
 
@@ -119,6 +180,15 @@ fn heuristic(a: Point, b: Point) -> f64 {
     ((xa - xb).abs() + (ya - yb).abs()) as f64
 }
 
+/// Estimate a basic capacity. Chances are there will still be re-allocation, but we at last prevent
+/// a few useless one.
+fn rough_capacity(a: Point, b: Point) -> usize {
+    let (xa, ya) = a;
+    let (xb, yb) = b;
+    let distance = (xa - xb).abs().max((ya - yb).abs()) as usize;
+    distance * distance
+}
+
 #[derive(Copy, Clone, PartialEq)]
 struct State {
     position: Point,
@@ -152,34 +222,34 @@ impl PartialOrd for State {
 
 #[cfg(test)]
 mod tests {
-    use crate::{bresenham::Bresenham, Map, Point};
+    use crate::{bresenham::LineBresenham, Map, Point};
 
     use super::astar_path;
 
-    struct TestMap {
+    struct SampleMap {
         width: i32,
         height: i32,
-        tiles: Vec<bool>,
+        walkable: Vec<bool>,
     }
 
-    impl TestMap {
+    impl SampleMap {
         fn new(width: i32, height: i32) -> Self {
-            TestMap {
+            SampleMap {
                 width,
                 height,
-                tiles: vec![true; (width * height) as usize],
+                walkable: vec![true; (width * height) as usize],
             }
         }
 
         fn build_wall(&mut self, from: Point, to: Point) {
-            let bresenham = Bresenham::new(from, to);
+            let bresenham = LineBresenham::new(from, to);
             for (x, y) in bresenham {
-                self.tiles[(x + y * self.width) as usize] = false;
+                self.walkable[(x + y * self.width) as usize] = false;
             }
         }
     }
 
-    impl Map for TestMap {
+    impl Map for SampleMap {
         fn dimensions(&self) -> (i32, i32) {
             (self.width, self.height)
         }
@@ -189,13 +259,13 @@ mod tests {
         }
 
         fn is_walkable(&self, x: i32, y: i32) -> bool {
-            self.tiles[(x + y * self.width) as usize]
+            self.walkable[(x + y * self.width) as usize]
         }
     }
 
     #[test]
     fn astar_find_path() {
-        let mut map = TestMap::new(10, 10);
+        let mut map = SampleMap::new(10, 10);
         map.build_wall((3, 3), (3, 6));
         map.build_wall((0, 3), (3, 3));
 
@@ -213,7 +283,7 @@ mod tests {
 
     #[test]
     fn astar_no_path() {
-        let mut map = TestMap::new(10, 10);
+        let mut map = SampleMap::new(10, 10);
         map.build_wall((3, 3), (3, 6));
         map.build_wall((0, 3), (3, 3));
         map.build_wall((0, 6), (3, 6));
