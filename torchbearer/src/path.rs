@@ -20,12 +20,15 @@ pub fn astar_path<T: Map>(map: &T, from: Point, to: Point) -> Option<Vec<Point>>
     came_from.insert(from, None);
     cost_so_far.insert(from, 0.);
 
+    let mut to_cost = 0.;
+
     while let Some(State {
         position: current,
-        cost: _,
+        cost: current_cost,
     }) = frontier.pop()
     {
         if current == to {
+            to_cost = current_cost;
             break;
         }
 
@@ -44,7 +47,7 @@ pub fn astar_path<T: Map>(map: &T, from: Point, to: Point) -> Option<Vec<Point>>
         }
     }
 
-    reconstruct_path(from, to, came_from)
+    reconstruct_path(from, to, came_from, to_cost)
 }
 
 fn cost(from: Point, to: Point) -> f64 {
@@ -66,28 +69,32 @@ fn neighboors<T: Map>(map: &T, position: Point) -> Vec<Point> {
     let (x, y) = position;
     // This is a hack for nicer paths, as described here:
     // https://www.redblobgames.com/pathfinding/a-star/implementation.html#troubleshooting-ugly-path
-    let neighboors = if (x + y) % 2 == 0 {
-        vec![(x, y + 1), (x, y - 1), (x - 1, y), (x + 1, y)]
+    let candidate_neighboors = if (x + y) % 2 == 0 {
+        [(x, y + 1), (x, y - 1), (x - 1, y), (x + 1, y)]
     } else {
-        vec![(x + 1, y), (x - 1, y), (x, y - 1), (x, y + 1)]
+        [(x + 1, y), (x - 1, y), (x, y - 1), (x, y + 1)]
     };
 
+    let mut neighboors = Vec::with_capacity(4);
+    for (x, y) in &candidate_neighboors {
+        if is_bounded(*x, *y, width, height) && map.is_walkable(*x, *y) {
+            neighboors.push((*x, *y));
+        }
+    }
     neighboors
-        .into_iter()
-        .filter(|(x, y)| is_bounded(*x, *y, width, height))
-        .filter(|(x, y)| !map.is_opaque(*x, *y))
-        .collect()
 }
 
 fn reconstruct_path(
-    start: Point,
-    target: Point,
+    from: Point,
+    to: Point,
     mut came_from: HashMap<Point, Option<Point>>,
+    cost: f64,
 ) -> Option<Vec<Point>> {
-    let mut current = Some(target);
-    let mut path = vec![];
+    let mut current = Some(to);
 
-    while current != Some(start) {
+    let mut path = Vec::with_capacity((cost.floor() + 2.0) as usize);
+
+    while current != Some(from) {
         if let Some(position) = current {
             path.push(position);
 
@@ -96,7 +103,7 @@ fn reconstruct_path(
             return None;
         }
     }
-    path.push(start);
+    path.push(from);
 
     Some(path.into_iter().rev().collect())
 }
@@ -160,14 +167,14 @@ mod tests {
             TestMap {
                 width,
                 height,
-                tiles: vec![false; (width * height) as usize],
+                tiles: vec![true; (width * height) as usize],
             }
         }
 
         fn build_wall(&mut self, from: Point, to: Point) {
             let bresenham = Bresenham::new(from, to);
             for (x, y) in bresenham {
-                self.tiles[(x + y * self.width) as usize] = true;
+                self.tiles[(x + y * self.width) as usize] = false;
             }
         }
     }
@@ -177,7 +184,11 @@ mod tests {
             (self.width, self.height)
         }
 
-        fn is_opaque(&self, x: i32, y: i32) -> bool {
+        fn is_opaque(&self, _x: i32, _y: i32) -> bool {
+            false
+        }
+
+        fn is_walkable(&self, x: i32, y: i32) -> bool {
             self.tiles[(x + y * self.width) as usize]
         }
     }

@@ -273,6 +273,10 @@ mod tests {
             let index = (x + y * self.width) as usize;
             !self.transparent[index]
         }
+
+        fn is_walkable(&self, _x: i32, _y: i32) -> bool {
+            false
+        }
     }
 
     impl SampleMap {

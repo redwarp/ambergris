@@ -156,6 +156,10 @@ impl FieldOfVisionMap for Map {
     fn is_opaque(&self, x: i32, y: i32) -> bool {
         self.tiles[(x + y * self.width) as usize].block_sight
     }
+
+    fn is_walkable(&self, x: i32, y: i32) -> bool {
+        self.tiles[(x + y * self.width) as usize].blocking
+    }
 }
 
 pub fn make_map(world: &mut World, level: i32) -> Map {

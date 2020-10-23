@@ -17,7 +17,7 @@ impl TestMap {
         TestMap {
             width,
             height,
-            tiles: vec![false; (width * height) as usize],
+            tiles: vec![true; (width * height) as usize],
         }
     }
 
@@ -30,7 +30,7 @@ impl TestMap {
     fn build_wall(&mut self, from: Point, to: Point) {
         let bresenham = Bresenham::new(from, to);
         for (x, y) in bresenham {
-            self.tiles[(x + y * self.width) as usize] = true;
+            self.tiles[(x + y * self.width) as usize] = false;
         }
     }
 
@@ -39,7 +39,7 @@ impl TestMap {
             return false;
         }
         let idx = x + y * self.width;
-        !self.tiles[idx as usize]
+        self.tiles[idx as usize]
     }
 }
 
@@ -48,7 +48,11 @@ impl Map for TestMap {
         (self.width, self.height)
     }
 
-    fn is_opaque(&self, x: i32, y: i32) -> bool {
+    fn is_opaque(&self, _x: i32, _y: i32) -> bool {
+        false
+    }
+
+    fn is_walkable(&self, x: i32, y: i32) -> bool {
         self.tiles[(x + y * self.width) as usize]
     }
 }
@@ -152,5 +156,6 @@ pub fn tcod_astar(c: &mut Criterion) {
     println!("{:?}", path);
 }
 
-criterion_group!(benches, torchbearer_astar, bracket_astar, tcod_astar);
+criterion_group!(benches, torchbearer_astar);
+// criterion_group!(benches, torchbearer_astar, bracket_astar, tcod_astar);
 criterion_main!(benches);
