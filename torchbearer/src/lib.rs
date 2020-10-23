@@ -2,7 +2,7 @@ pub mod bresenham;
 pub mod fov;
 pub mod path;
 
-pub type Position = (i32, i32);
+pub type Point = (i32, i32);
 
 pub trait Map {
     fn dimensions(&self) -> (i32, i32);

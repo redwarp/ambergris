@@ -6,6 +6,7 @@ edition = "2018"
 description = "Find your path in darkerer dungeons."
 readme = "README.md"
 license = "Apache-2.0"
+repository = "https://github.com/redwarp/ambergris/tree/main/torchbearer"
 keywords = ["gamedev", "pathfinding", "field-of-view"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -18,11 +19,11 @@ rand = "0.7.3"
 tcod = "0.15.0"
 
 [[bench]]
-name = "fov_bench"
+name = "fov"
 harness = false
 
 [[bench]]
-name = "astar_bench"
+name = "path"
 harness = false
 
 [profile.release]

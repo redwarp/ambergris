@@ -33,8 +33,7 @@
 
 use core::iter::Iterator;
 
-/// Convenient typedef for two machines-sized integers
-pub type Point = (i32, i32);
+use crate::Point;
 
 /// Line-drawing iterator
 pub struct Bresenham {

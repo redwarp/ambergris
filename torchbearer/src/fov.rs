@@ -1,10 +1,10 @@
-use crate::{bresenham::Bresenham, Map, Position};
+use crate::{bresenham::Bresenham, Map, Point};
 
 /// Using https://sites.google.com/site/jicenospam/visibilitydetermination
 /// See http://www.roguebasin.com/index.php?title=Comparative_study_of_field_of_view_algorithms_for_2D_grid_based_worlds
 pub fn field_of_view<T: Map>(
     map: &T,
-    from: Position,
+    from: Point,
     radius: i32,
     include_walls: bool,
 ) -> Vec<(i32, i32)> {

@@ -1,6 +1,6 @@
 use bracket_pathfinding::prelude::{Algorithm2D, SmallVec};
 use criterion::{criterion_group, criterion_main, Criterion};
-use torchbearer::{bresenham::Bresenham, path::astar_path, Map, Position};
+use torchbearer::{bresenham::Bresenham, path::astar_path, Map, Point};
 
 struct TestMap {
     width: i32,
@@ -17,7 +17,13 @@ impl TestMap {
         }
     }
 
-    fn build_wall(&mut self, from: Position, to: Position) {
+    fn with_walls(mut self) -> Self {
+        self.build_wall((0, 3), (3, 3));
+        self.build_wall((3, 3), (3, 10));
+        self
+    }
+
+    fn build_wall(&mut self, from: Point, to: Point) {
         let bresenham = Bresenham::new(from, to);
         for (x, y) in bresenham {
             self.tiles[(x + y * self.width) as usize] = true;
@@ -91,27 +97,23 @@ impl bracket_pathfinding::prelude::Algorithm2D for TestMap {
     }
 }
 
-pub fn astar_benchmark(c: &mut Criterion) {
-    let mut map = TestMap::new(20, 20);
-    map.build_wall((0, 3), (3, 3));
-    map.build_wall((3, 3), (3, 10));
+pub fn torchbearer_astar(c: &mut Criterion) {
+    let map = TestMap::new(20, 20).with_walls();
 
-    c.bench_function("astar_benchmark", |bencher| {
+    c.bench_function("torchbearer_astar", |bencher| {
         bencher.iter(|| astar_path(&map, (1, 4), (10, 4)));
     });
 }
 
-pub fn rltk_astar_benchmark(c: &mut Criterion) {
-    let mut map = TestMap::new(20, 20);
-    map.build_wall((0, 3), (3, 3));
-    map.build_wall((3, 3), (3, 10));
+pub fn bracket_astar(c: &mut Criterion) {
+    let map = TestMap::new(20, 20).with_walls();
     let start = map.point2d_to_index((1, 4).into());
     let end = map.point2d_to_index((10, 4).into());
 
-    c.bench_function("rltk_astar_benchmark", |bencher| {
+    c.bench_function("bracket_astar", |bencher| {
         bencher.iter(|| bracket_pathfinding::prelude::a_star_search(start, end, &map));
     });
 }
 
-criterion_group!(benches, astar_benchmark, rltk_astar_benchmark);
+criterion_group!(benches, torchbearer_astar, bracket_astar);
 criterion_main!(benches);

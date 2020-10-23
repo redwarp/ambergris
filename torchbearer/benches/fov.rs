@@ -73,25 +73,25 @@ impl SampleMap {
     }
 }
 
-pub fn vec_fov_benchmark_no_walls(c: &mut Criterion) {
+pub fn torchbearer_fov_no_walls(c: &mut Criterion) {
     let map = SampleMap::new(WIDTH, HEIGHT);
 
-    c.bench_function("vec_fov_benchmark_no_walls", |bencher| {
+    c.bench_function("torchbearer_fov_no_walls", |bencher| {
         bencher
-            .iter(|| torchbearer::fov::field_of_view(&map, POSITION_X, POSITION_Y, RADIUS, true));
+            .iter(|| torchbearer::fov::field_of_view(&map, (POSITION_X, POSITION_Y), RADIUS, true));
     });
 }
 
-pub fn vec_fov_benchmark_random_walls(c: &mut Criterion) {
+pub fn torchbearer_fov_random_walls(c: &mut Criterion) {
     let map = SampleMap::new(WIDTH, HEIGHT).randomize_walls();
 
-    c.bench_function("vec_fov_benchmark_random_walls", |bencher| {
+    c.bench_function("torchbearer_fov_random_walls", |bencher| {
         bencher
-            .iter(|| torchbearer::fov::field_of_view(&map, POSITION_X, POSITION_Y, RADIUS, true));
+            .iter(|| torchbearer::fov::field_of_view(&map, (POSITION_X, POSITION_Y), RADIUS, true));
     });
 }
 
-pub fn tcod_benchmark_no_walls(c: &mut Criterion) {
+pub fn tcod_fov_no_walls(c: &mut Criterion) {
     let mut map = TcodMap::new(WIDTH as i32, HEIGHT as i32);
     for x in 0..WIDTH as i32 {
         for y in 0..HEIGHT as i32 {
@@ -102,12 +102,12 @@ pub fn tcod_benchmark_no_walls(c: &mut Criterion) {
     let x = POSITION_X as i32;
     let y = POSITION_Y as i32;
     let radius = RADIUS as i32;
-    c.bench_function("tcod_benchmark_no_walls", |bencher| {
+    c.bench_function("tcod_fov_no_walls", |bencher| {
         bencher.iter(|| map.compute_fov(x, y, radius, true, tcod::map::FovAlgorithm::Basic));
     });
 }
 
-pub fn tcod_benchmark_random_walls(c: &mut Criterion) {
+pub fn tcod_fov_random_walls(c: &mut Criterion) {
     let mut map = TcodMap::new(WIDTH as i32, HEIGHT as i32);
     for x in 0..WIDTH as i32 {
         for y in 0..HEIGHT as i32 {
@@ -125,15 +125,15 @@ pub fn tcod_benchmark_random_walls(c: &mut Criterion) {
     let x = POSITION_X as i32;
     let y = POSITION_Y as i32;
     let radius = RADIUS as i32;
-    c.bench_function("tcod_benchmark_random_walls", |bencher| {
+    c.bench_function("tcod_fov_random_walls", |bencher| {
         bencher.iter(|| map.compute_fov(x, y, radius, true, tcod::map::FovAlgorithm::Basic));
     });
 }
 
-pub fn rltk_benchmark_no_walls(c: &mut Criterion) {
+pub fn bracket_fov_no_walls(c: &mut Criterion) {
     let map = SampleMap::new(WIDTH, HEIGHT);
 
-    c.bench_function("rltk_benchmark_no_walls", |bencher| {
+    c.bench_function("bracket_fov_no_walls", |bencher| {
         bencher.iter(|| {
             bracket_pathfinding::prelude::field_of_view(
                 (POSITION_X, POSITION_Y).into(),
@@ -144,10 +144,10 @@ pub fn rltk_benchmark_no_walls(c: &mut Criterion) {
     });
 }
 
-pub fn rltk_benchmark_random_walls(c: &mut Criterion) {
+pub fn bracket_fov_random_walls(c: &mut Criterion) {
     let map = SampleMap::new(WIDTH, HEIGHT).randomize_walls();
 
-    c.bench_function("rltk_benchmark_random_walls", |bencher| {
+    c.bench_function("bracket_fov_random_walls", |bencher| {
         bencher.iter(|| {
             bracket_pathfinding::prelude::field_of_view(
                 (POSITION_X, POSITION_Y).into(),
@@ -160,11 +160,11 @@ pub fn rltk_benchmark_random_walls(c: &mut Criterion) {
 
 criterion_group!(
     benches,
-    vec_fov_benchmark_no_walls,
-    vec_fov_benchmark_random_walls,
-    tcod_benchmark_no_walls,
-    tcod_benchmark_random_walls,
-    rltk_benchmark_no_walls,
-    rltk_benchmark_random_walls
+    torchbearer_fov_no_walls,
+    torchbearer_fov_random_walls,
+    tcod_fov_no_walls,
+    tcod_fov_random_walls,
+    bracket_fov_no_walls,
+    bracket_fov_random_walls
 );
 criterion_main!(benches);

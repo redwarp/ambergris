@@ -3,11 +3,11 @@ use std::{
     collections::{BinaryHeap, HashMap},
 };
 
-use crate::{Map, Position};
+use crate::{Map, Point};
 
 /// https://www.redblobgames.com/pathfinding/a-star/implementation.html#python-astar
 /// Checking binary heap here: https://doc.rust-lang.org/stable/std/collections/binary_heap/
-pub fn astar_path<T: Map>(map: &T, from: Position, to: Position) -> Option<Vec<Position>> {
+pub fn astar_path<T: Map>(map: &T, from: Point, to: Point) -> Option<Vec<Point>> {
     let mut frontier = BinaryHeap::new();
 
     frontier.push(State {
@@ -15,8 +15,8 @@ pub fn astar_path<T: Map>(map: &T, from: Position, to: Position) -> Option<Vec<P
         cost: 0.,
     });
 
-    let mut came_from: HashMap<Position, Option<Position>> = HashMap::new();
-    let mut cost_so_far: HashMap<Position, f64> = HashMap::new();
+    let mut came_from: HashMap<Point, Option<Point>> = HashMap::new();
+    let mut cost_so_far: HashMap<Point, f64> = HashMap::new();
     came_from.insert(from, None);
     cost_so_far.insert(from, 0.);
 
@@ -47,7 +47,7 @@ pub fn astar_path<T: Map>(map: &T, from: Position, to: Position) -> Option<Vec<P
     reconstruct_path(from, to, came_from)
 }
 
-fn neighboors<T: Map>(map: &T, position: Position) -> Vec<Position> {
+fn neighboors<T: Map>(map: &T, position: Point) -> Vec<Point> {
     let (width, height) = map.dimensions();
     let (x, y) = position;
     // This is a hack for nicer paths, as described here:
@@ -66,10 +66,10 @@ fn neighboors<T: Map>(map: &T, position: Position) -> Vec<Position> {
 }
 
 fn reconstruct_path(
-    start: Position,
-    target: Position,
-    mut came_from: HashMap<Position, Option<Position>>,
-) -> Option<Vec<Position>> {
+    start: Point,
+    target: Point,
+    mut came_from: HashMap<Point, Option<Point>>,
+) -> Option<Vec<Point>> {
     let mut current = Some(target);
     let mut path = vec![];
 
@@ -82,6 +82,7 @@ fn reconstruct_path(
             return None;
         }
     }
+    path.push(start);
 
     Some(path.into_iter().rev().collect())
 }
@@ -90,7 +91,7 @@ fn is_bounded(x: i32, y: i32, width: i32, height: i32) -> bool {
     x >= 0 && y >= 0 && x < width && y < height
 }
 
-fn heuristic(a: Position, b: Position) -> f64 {
+fn heuristic(a: Point, b: Point) -> f64 {
     let (xa, ya) = a;
     let (xb, yb) = b;
 
@@ -99,7 +100,7 @@ fn heuristic(a: Position, b: Position) -> f64 {
 
 #[derive(Copy, Clone, PartialEq)]
 struct State {
-    position: Position,
+    position: Point,
     cost: f64,
 }
 
@@ -130,7 +131,7 @@ impl PartialOrd for State {
 
 #[cfg(test)]
 mod tests {
-    use crate::{bresenham::Bresenham, Map, Position};
+    use crate::{bresenham::Bresenham, Map, Point};
 
     use super::astar_path;
 
@@ -149,7 +150,7 @@ mod tests {
             }
         }
 
-        fn build_wall(&mut self, from: Position, to: Position) {
+        fn build_wall(&mut self, from: Point, to: Point) {
             let bresenham = Bresenham::new(from, to);
             for (x, y) in bresenham {
                 self.tiles[(x + y * self.width) as usize] = true;
@@ -168,12 +169,34 @@ mod tests {
     }
 
     #[test]
-    fn astar() {
+    fn astar_find_path() {
         let mut map = TestMap::new(10, 10);
         map.build_wall((3, 3), (3, 6));
         map.build_wall((0, 3), (3, 3));
 
-        let path = astar_path(&map, (0, 4), (5, 4));
-        println!("{:?}", path);
+        let from = (0, 4);
+        let to = (5, 4);
+
+        let path = astar_path(&map, from, to);
+        assert!(path.is_some());
+
+        if let Some(path) = path {
+            assert_eq!(from, path[0]);
+            assert_eq!(to, path[path.len() - 1]);
+        }
+    }
+
+    #[test]
+    fn astar_no_path() {
+        let mut map = TestMap::new(10, 10);
+        map.build_wall((3, 3), (3, 6));
+        map.build_wall((0, 3), (3, 3));
+        map.build_wall((0, 6), (3, 6));
+
+        let from = (0, 4);
+        let to = (5, 4);
+
+        let path = astar_path(&map, from, to);
+        assert!(path.is_none());
     }
 }
