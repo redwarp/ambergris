@@ -78,10 +78,9 @@ pub fn astar_path<T: Map>(map: &T, from: Point, to: Point) -> Option<Vec<Point>>
         cost: 0.,
     });
 
-    let mut came_from: HashMap<Point, Option<Point>> = HashMap::with_capacity(capacity);
-    let mut cost_so_far: HashMap<Point, f32> = HashMap::with_capacity(capacity);
-    came_from.insert(from, None);
-    cost_so_far.insert(from, 0.);
+    let mut origin_and_cost_so_far: HashMap<Point, (Option<Point>, f32)> =
+        HashMap::with_capacity(capacity);
+    origin_and_cost_so_far.insert(from, (None, 0.));
 
     let mut to_cost = 0.;
 
@@ -96,21 +95,23 @@ pub fn astar_path<T: Map>(map: &T, from: Point, to: Point) -> Option<Vec<Point>>
         }
 
         for next in neighboors(map, current).iter() {
-            let new_cost = cost_so_far[&current] + cost(&current, next);
+            let (_came_from, cost_so_far) = origin_and_cost_so_far[&current];
+            let new_cost = cost_so_far + cost(&current, next);
 
-            if !cost_so_far.contains_key(&next) || new_cost < cost_so_far[&next] {
-                cost_so_far.insert(*next, new_cost);
+            if !origin_and_cost_so_far.contains_key(&next)
+                || new_cost < origin_and_cost_so_far[&next].1
+            {
                 let priority = new_cost + heuristic(next, &to);
                 frontier.push(State {
                     position: *next,
                     cost: priority,
                 });
-                came_from.insert(*next, Some(current));
+                origin_and_cost_so_far.insert(*next, (Some(current), new_cost));
             }
         }
     }
 
-    reconstruct_path(from, to, came_from, to_cost)
+    reconstruct_path(from, to, origin_and_cost_so_far, to_cost)
 }
 
 fn cost(from: &Point, to: &Point) -> f32 {
@@ -147,7 +148,7 @@ fn neighboors<T: Map>(map: &T, position: Point) -> Vec<Point> {
 fn reconstruct_path(
     from: Point,
     to: Point,
-    mut came_from: HashMap<Point, Option<Point>>,
+    mut came_from: HashMap<Point, (Option<Point>, f32)>,
     cost: f32,
 ) -> Option<Vec<Point>> {
     let mut current = Some(to);
@@ -158,7 +159,7 @@ fn reconstruct_path(
         if let Some(position) = current {
             path.push(position);
 
-            current = came_from.remove(&position).unwrap_or(None);
+            current = came_from.remove(&position).unwrap_or((None, 0.)).0;
         } else {
             return None;
         }
@@ -277,6 +278,24 @@ mod tests {
         if let Some(path) = path {
             assert_eq!(from, path[0]);
             assert_eq!(to, path[path.len() - 1]);
+
+            assert_eq!(
+                path,
+                [
+                    (0, 4),
+                    (0, 5),
+                    (1, 5),
+                    (1, 6),
+                    (2, 6),
+                    (2, 7),
+                    (3, 7),
+                    (4, 7),
+                    (5, 7),
+                    (5, 6),
+                    (5, 5),
+                    (5, 4)
+                ]
+            );
         }
     }
 
