@@ -79,7 +79,7 @@ pub fn astar_path<T: Map>(map: &T, from: Point, to: Point) -> Option<Vec<Point>>
     });
 
     let mut came_from: HashMap<Point, Option<Point>> = HashMap::with_capacity(capacity);
-    let mut cost_so_far: HashMap<Point, f64> = HashMap::with_capacity(capacity);
+    let mut cost_so_far: HashMap<Point, f32> = HashMap::with_capacity(capacity);
     came_from.insert(from, None);
     cost_so_far.insert(from, 0.);
 
@@ -113,15 +113,12 @@ pub fn astar_path<T: Map>(map: &T, from: Point, to: Point) -> Option<Vec<Point>>
     reconstruct_path(from, to, came_from, to_cost)
 }
 
-fn cost(from: &Point, to: &Point) -> f64 {
+fn cost(from: &Point, to: &Point) -> f32 {
     let basic = 1.;
     let mut nudge = 0.;
     let (x1, y1) = from;
     let (x2, y2) = to;
-    if (x1 + y1) % 2 == 0 && x2 != x1 {
-        nudge = 1.
-    }
-    if (x1 + y1) % 2 == 1 && y2 != y1 {
+    if ((x1 + y1) % 2 == 0 && x2 != x1) || ((x1 + y1) % 2 == 1 && y2 != y1) {
         nudge = 1.
     }
     basic + 0.001 * nudge
@@ -151,7 +148,7 @@ fn reconstruct_path(
     from: Point,
     to: Point,
     mut came_from: HashMap<Point, Option<Point>>,
-    cost: f64,
+    cost: f32,
 ) -> Option<Vec<Point>> {
     let mut current = Some(to);
 
@@ -175,11 +172,11 @@ fn is_bounded(x: i32, y: i32, width: i32, height: i32) -> bool {
     x >= 0 && y >= 0 && x < width && y < height
 }
 
-fn heuristic(a: &Point, b: &Point) -> f64 {
+fn heuristic(a: &Point, b: &Point) -> f32 {
     let (xa, ya) = a;
     let (xb, yb) = b;
 
-    ((xa - xb).abs() + (ya - yb).abs()) as f64
+    ((xa - xb).abs() + (ya - yb).abs()) as f32
 }
 
 /// Estimate a basic capacity. Chances are there will still be re-allocation, but we at last prevent
@@ -194,7 +191,7 @@ fn rough_capacity(a: Point, b: Point) -> usize {
 #[derive(Copy, Clone, PartialEq)]
 struct State {
     position: Point,
-    cost: f64,
+    cost: f32,
 }
 
 impl Eq for State {}
