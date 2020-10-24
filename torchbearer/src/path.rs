@@ -50,7 +50,7 @@ use crate::{Map, Point};
 ///
 ///     fn is_transparent(&self, x: i32, y: i32) -> bool {
 ///         // pathfinding only considers walkability.
-///         todo!("Not used in pathfinding.")
+///         unreachable!("Not used in pathfinding.")
 ///     }
 ///
 ///     fn is_walkable(&self, x: i32, y: i32) -> bool {

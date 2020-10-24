@@ -48,7 +48,7 @@ use crate::{bresenham::BresenhamLine, Map, Point};
 ///
 ///     fn is_walkable(&self, x: i32, y: i32) -> bool {
 ///         // field of vision only considers transparency.
-///         todo!("Not used in field of view.")
+///         unreachable!("Not used in field of view.")
 ///     }
 /// }
 ///
