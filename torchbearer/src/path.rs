@@ -68,7 +68,6 @@ use crate::{Map, Point};
 ///     // (…)
 /// }
 /// ```
-
 pub fn astar_path<T: Map>(map: &T, from: Point, to: Point) -> Option<Vec<Point>> {
     let capacity = rough_capacity(from, to);
     let mut frontier = BinaryHeap::with_capacity(capacity);
