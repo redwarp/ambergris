@@ -12,8 +12,8 @@ use crate::{bresenham::BresenhamLine, Map, Point};
 /// # Arguments
 ///
 /// * `map` - A struct implementing the `Map` trait.
-/// * `from` - the origin/center of the field of vision.
-/// * `radius` - how far the vision should go.
+/// * `from` - The origin/center of the field of vision.
+/// * `radius` - How far the vision should go. Should be higher or equal to 0 (If 0, you only see yourself).
 ///
 /// # Examples
 /// ```
@@ -67,6 +67,9 @@ pub fn field_of_view<T: Map>(map: &T, from: Point, radius: i32) -> Vec<(i32, i32
     let (x, y) = from;
     let radius_square = radius.pow(2);
     assert_in_bounds(map, x, y);
+    if radius < 0 {
+        panic!("A radius >= 0 is required, you used {}", radius);
+    }
 
     if radius < 1 {
         return vec![(x, y)];
