@@ -99,7 +99,7 @@ pub fn astar_path<T: Map>(map: &T, from: Point, to: Point) -> Option<Vec<Point>>
             let new_cost = cost_so_far + cost(&current, next);
 
             if !origin_and_cost_so_far.contains_key(&next)
-                || new_cost < origin_and_cost_so_far[&next].1
+                || &new_cost < &origin_and_cost_so_far.get(&next).unwrap().1
             {
                 let priority = new_cost + heuristic(next, &to);
                 frontier.push(State {

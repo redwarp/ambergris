@@ -198,9 +198,9 @@ pub fn field_of_view<T: Map>(map: &T, from: Point, radius: i32) -> Vec<(i32, i32
     );
 
     visibles
-        .iter()
+        .into_iter()
         .enumerate()
-        .filter(|&(_index, visible)| *visible)
+        .filter(|&(_index, visible)| visible)
         .map(|(index, _)| {
             (
                 index as i32 % sub_width + offset_x,
