@@ -158,7 +158,7 @@ impl FieldOfVisionMap for Map {
     }
 
     fn is_walkable(&self, x: i32, y: i32) -> bool {
-        self.tiles[(x + y * self.width) as usize].blocking
+        !self.tiles[(x + y * self.width) as usize].blocking
     }
 }
 

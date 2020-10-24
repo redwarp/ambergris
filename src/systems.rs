@@ -11,6 +11,7 @@ use legion::Entity;
 use legion::IntoQuery;
 use legion::Schedule;
 use legion::{component, Write};
+use torchbearer::path::astar_path;
 
 pub fn game_schedule() -> Schedule {
     Schedule::builder()
@@ -52,17 +53,20 @@ pub fn monster_action(
         let distance = coordinates.distance_to(player_position);
         if map.is_in_player_fov(coordinates.x, coordinates.y) {
             if distance >= 2.0 {
-                let dx = player_position.x - coordinates.x;
-                let dy = player_position.y - coordinates.y;
+                if let Some(path) =
+                    astar_path(map, (coordinates.x, coordinates.y), player_position.into())
+                {
+                    let next_step = path[1];
 
-                let dx = (dx as f32 / distance).round() as i32;
-                let dy = (dy as f32 / distance).round() as i32;
+                    let dx = next_step.0 - coordinates.x;
+                    let dy = next_step.1 - coordinates.y;
 
-                cmd.push((MoveAction {
-                    entity: *entity,
-                    dx,
-                    dy,
-                },));
+                    cmd.push((MoveAction {
+                        entity: *entity,
+                        dx,
+                        dy,
+                    },));
+                }
             } else {
                 // Attack!
                 let attack_action = AttackAction {
