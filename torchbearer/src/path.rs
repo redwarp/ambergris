@@ -95,17 +95,17 @@ pub fn astar_path<T: Map>(map: &T, from: Point, to: Point) -> Option<Vec<Point>>
             break;
         }
 
-        for next in neighboors(map, current) {
-            let new_cost = cost_so_far[&current] + cost(current, next);
+        for next in neighboors(map, current).iter() {
+            let new_cost = cost_so_far[&current] + cost(&current, next);
 
             if !cost_so_far.contains_key(&next) || new_cost < cost_so_far[&next] {
-                cost_so_far.insert(next, new_cost);
-                let priority = new_cost + heuristic(next, to);
+                cost_so_far.insert(*next, new_cost);
+                let priority = new_cost + heuristic(next, &to);
                 frontier.push(State {
-                    position: next,
+                    position: *next,
                     cost: priority,
                 });
-                came_from.insert(next, Some(current));
+                came_from.insert(*next, Some(current));
             }
         }
     }
@@ -113,7 +113,7 @@ pub fn astar_path<T: Map>(map: &T, from: Point, to: Point) -> Option<Vec<Point>>
     reconstruct_path(from, to, came_from, to_cost)
 }
 
-fn cost(from: Point, to: Point) -> f64 {
+fn cost(from: &Point, to: &Point) -> f64 {
     let basic = 1.;
     let mut nudge = 0.;
     let (x1, y1) = from;
@@ -139,7 +139,7 @@ fn neighboors<T: Map>(map: &T, position: Point) -> Vec<Point> {
     };
 
     let mut neighboors = Vec::with_capacity(4);
-    for (x, y) in &candidate_neighboors {
+    for (x, y) in candidate_neighboors.iter() {
         if is_bounded(*x, *y, width, height) && map.is_walkable(*x, *y) {
             neighboors.push((*x, *y));
         }
@@ -175,7 +175,7 @@ fn is_bounded(x: i32, y: i32, width: i32, height: i32) -> bool {
     x >= 0 && y >= 0 && x < width && y < height
 }
 
-fn heuristic(a: Point, b: Point) -> f64 {
+fn heuristic(a: &Point, b: &Point) -> f64 {
     let (xa, ya) = a;
     let (xb, yb) = b;
 
