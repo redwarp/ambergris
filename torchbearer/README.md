@@ -1,3 +1,7 @@
+[![Docs](https://docs.rs/torchbearer/badge.svg)](https://docs.rs/torchbearer)
+[![Crates.io](https://img.shields.io/crates/d/torchbearer.svg)](https://crates.io/crates/torchbearer)
+[![Crates.io](https://img.shields.io/crates/v/torchbearer.svg)](https://crates.io/crates/torchbearer)
+
 A set of tools to find your path in a grid based dungeon. Field of view, pathfinding...
 
 Inspired by [tcod-rs](https://crates.io/crates/tcod) and [bracket-pathfinding](https://crates.io/crates/bracket-pathfinding),
