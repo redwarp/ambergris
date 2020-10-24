@@ -28,12 +28,12 @@ use crate::Point;
 /// Will print:
 ///
 /// ```text
-/// (0, 1)
-/// (1, 1)
-/// (2, 2)
-/// (3, 2)
-/// (4, 3)
-/// (5, 3)
+/// (0, 1)                      . . . . . . .
+/// (1, 1)                      x # . . . . .
+/// (2, 2)   corresponding to   . . # # . . .
+/// (3, 2)                      . . . . # # .
+/// (4, 3)                      . . . . . . x
+/// (5, 3)                      . . . . . . .
 /// (6, 4)
 /// ```
 pub struct BresenhamLine {
@@ -175,7 +175,7 @@ impl Iterator for BresenhamLine {
 /// Iterator-based Bresenham's circle drawing algorithm.
 ///
 /// [Bresenham's circle drawing algorithm](http://members.chello.at/~easyfilter/bresenham.html)
-/// is a fast algorithm to draw the circonference of a circle.
+/// is a fast algorithm to draw the circumference of a circle.
 ///
 /// # Example
 ///
@@ -216,7 +216,8 @@ pub struct BresenhamCircle {
 }
 
 impl BresenhamCircle {
-    /// Create new iterator. Yield all points on the circle of center and radius.
+    /// Create new iterator. Yield all points on the circumference of the circle
+    /// of center `center` and radius `radius`.
     pub fn new(center: Point, radius: i32) -> Self {
         BresenhamCircle {
             center,
