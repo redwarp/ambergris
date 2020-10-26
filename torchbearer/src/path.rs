@@ -69,12 +69,13 @@ use crate::{Map, Point};
 /// }
 /// ```
 pub fn astar_path<T: Map>(map: &T, from: Point, to: Point) -> Option<Vec<Point>> {
-    let capacity = rough_capacity(from, to);
+    let (width, height) = map.dimensions();
+    let capacity = rough_capacity(&from, &to);
     let mut frontier = BinaryHeap::with_capacity(capacity);
 
     frontier.push(State {
-        position: from,
         cost: 0.,
+        position: from,
     });
 
     let mut origin_and_cost_so_far: HashMap<Point, (Option<Point>, f32)> =
@@ -93,19 +94,20 @@ pub fn astar_path<T: Map>(map: &T, from: Point, to: Point) -> Option<Vec<Point>>
             break;
         }
 
-        for next in neighboors(map, current).iter() {
-            let (_came_from, cost_so_far) = origin_and_cost_so_far[&current];
-            let new_cost = cost_so_far + cost(&current, next);
+        for next in neighboors(map, &current, width, height).into_iter() {
+            let cost_so_far = origin_and_cost_so_far[&current].1;
+            // let (_came_from, cost_so_far) = origin_and_cost_so_far[&current];
+            let new_cost = cost_so_far + cost(&current, &next);
 
             if !origin_and_cost_so_far.contains_key(&next)
-                || &new_cost < &origin_and_cost_so_far.get(&next).unwrap().1
+                || new_cost < origin_and_cost_so_far[&next].1
             {
-                let priority = new_cost + heuristic(next, &to);
+                let priority = new_cost + heuristic(&next, &to);
                 frontier.push(State {
-                    position: *next,
                     cost: priority,
+                    position: next,
                 });
-                origin_and_cost_so_far.insert(*next, (Some(current), new_cost));
+                origin_and_cost_so_far.insert(next, (Some(current), new_cost));
             }
         }
     }
@@ -115,18 +117,18 @@ pub fn astar_path<T: Map>(map: &T, from: Point, to: Point) -> Option<Vec<Point>>
 
 fn cost(from: &Point, to: &Point) -> f32 {
     let basic = 1.;
-    let mut nudge = 0.;
-    let (x1, y1) = from;
-    let (x2, y2) = to;
-    if ((x1 + y1) % 2 == 0 && x2 != x1) || ((x1 + y1) % 2 == 1 && y2 != y1) {
-        nudge = 1.
-    }
+    let &(x1, y1) = from;
+    let &(x2, y2) = to;
+    let nudge = if ((x1 + y1) % 2 == 0 && x2 != x1) || ((x1 + y1) % 2 == 1 && y2 != y1) {
+        1.
+    } else {
+        0.
+    };
     basic + 0.001 * nudge
 }
 
-fn neighboors<T: Map>(map: &T, position: Point) -> Vec<Point> {
-    let (width, height) = map.dimensions();
-    let (x, y) = position;
+fn neighboors<T: Map>(map: &T, position: &Point, width: i32, height: i32) -> Vec<Point> {
+    let &(x, y) = position;
     // This is a hack for nicer paths, as described here:
     // https://www.redblobgames.com/pathfinding/a-star/implementation.html#troubleshooting-ugly-path
     let candidate_neighboors = if (x + y) % 2 == 0 {
@@ -157,8 +159,11 @@ fn reconstruct_path(
     while current != Some(from) {
         if let Some(position) = current {
             path.push(position);
-
-            current = came_from.remove(&position).unwrap_or((None, 0.)).0;
+            current = if let Some(entry) = came_from.remove(&position) {
+                entry.0
+            } else {
+                return None;
+            }
         } else {
             return None;
         }
@@ -181,17 +186,17 @@ fn heuristic(a: &Point, b: &Point) -> f32 {
 
 /// Estimate a basic capacity. Chances are there will still be re-allocation, but we at last prevent
 /// a few useless one.
-fn rough_capacity(a: Point, b: Point) -> usize {
-    let (xa, ya) = a;
-    let (xb, yb) = b;
+fn rough_capacity(a: &Point, b: &Point) -> usize {
+    let &(xa, ya) = a;
+    let &(xb, yb) = b;
     let distance = (xa - xb).abs().max((ya - yb).abs()) as usize;
     distance * distance
 }
 
-#[derive(Copy, Clone, PartialEq)]
+#[derive(PartialEq)]
 struct State {
-    position: Point,
     cost: f32,
+    position: Point,
 }
 
 impl Eq for State {}

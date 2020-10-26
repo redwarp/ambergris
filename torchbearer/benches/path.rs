@@ -24,6 +24,7 @@ impl TestMap {
     fn with_walls(mut self) -> Self {
         self.build_wall((0, 3), (3, 3));
         self.build_wall((3, 3), (3, 10));
+        self.build_wall((5, 3), (5, 19));
         self
     }
 
@@ -141,6 +142,7 @@ pub fn tcod_astar(c: &mut Criterion) {
     }
     build_wall(&mut map, (0, 3), (3, 3));
     build_wall(&mut map, (3, 3), (3, 10));
+    build_wall(&mut map, (5, 3), (5, 19));
 
     let mut astar = tcod::pathfinding::AStar::new_from_map(map, 10.0);
     let from = (1, 4);
