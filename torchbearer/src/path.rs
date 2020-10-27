@@ -75,7 +75,7 @@ pub fn astar_path<T: Map>(map: &T, from: Point, to: Point) -> Option<Vec<Point>>
 
     frontier.push(State {
         cost: 0.,
-        position: from,
+        item: from,
     });
 
     let mut origin_and_cost_so_far: HashMap<Point, (Option<Point>, f32)> =
@@ -85,7 +85,7 @@ pub fn astar_path<T: Map>(map: &T, from: Point, to: Point) -> Option<Vec<Point>>
     let mut to_cost = 0.;
 
     while let Some(State {
-        position: current,
+        item: current,
         cost: current_cost,
     }) = frontier.pop()
     {
@@ -105,7 +105,7 @@ pub fn astar_path<T: Map>(map: &T, from: Point, to: Point) -> Option<Vec<Point>>
                 let priority = new_cost + heuristic(&next, &to);
                 frontier.push(State {
                     cost: priority,
-                    position: next,
+                    item: next,
                 });
                 origin_and_cost_so_far.insert(next, (Some(current), new_cost));
             }
@@ -138,9 +138,9 @@ fn neighboors<T: Map>(map: &T, position: &Point, width: i32, height: i32) -> Vec
     };
 
     let mut neighboors = Vec::with_capacity(4);
-    for (x, y) in candidate_neighboors.iter() {
-        if is_bounded(*x, *y, width, height) && map.is_walkable(*x, *y) {
-            neighboors.push((*x, *y));
+    for &(x, y) in candidate_neighboors.iter() {
+        if is_bounded(x, y, width, height) && map.is_walkable(x, y) {
+            neighboors.push((x, y));
         }
     }
     neighboors
@@ -193,19 +193,23 @@ fn rough_capacity(a: &Point, b: &Point) -> usize {
     distance * distance
 }
 
-#[derive(PartialEq)]
-struct State {
-    cost: f32,
-    position: Point,
+struct State<C: PartialOrd, T> {
+    cost: C,
+    item: T,
+}
+impl<C: PartialOrd, T> PartialEq for State<C, T> {
+    fn eq(&self, other: &Self) -> bool {
+        self.cost.eq(&other.cost)
+    }
 }
 
-impl Eq for State {}
+impl<C: PartialOrd, T> Eq for State<C, T> {}
 
 // The priority queue depends on `Ord`.
 // Explicitly implement the trait so the queue becomes a min-heap
 // instead of a max-heap.
-impl Ord for State {
-    fn cmp(&self, other: &State) -> Ordering {
+impl<C: PartialOrd, T> Ord for State<C, T> {
+    fn cmp(&self, other: &State<C, T>) -> Ordering {
         // Notice that the we flip the ordering on costs.
         // In case of a tie we compare positions - this step is necessary
         // to make implementations of `PartialEq` and `Ord` consistent.
@@ -213,13 +217,12 @@ impl Ord for State {
             .cost
             .partial_cmp(&self.cost)
             .unwrap_or(Ordering::Equal)
-            .then_with(|| self.position.cmp(&other.position))
     }
 }
 
 // `PartialOrd` needs to be implemented as well.
-impl PartialOrd for State {
-    fn partial_cmp(&self, other: &State) -> Option<Ordering> {
+impl<C: PartialOrd, T> PartialOrd for State<C, T> {
+    fn partial_cmp(&self, other: &State<C, T>) -> Option<Ordering> {
         Some(self.cmp(other))
     }
 }

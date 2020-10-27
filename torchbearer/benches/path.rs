@@ -25,6 +25,8 @@ impl TestMap {
         self.build_wall((0, 3), (3, 3));
         self.build_wall((3, 3), (3, 10));
         self.build_wall((5, 3), (5, 19));
+        self.build_wall((7, 0), (7, 16));
+        self.build_wall((9, 1), (9, 19));
         self
     }
 
@@ -109,7 +111,7 @@ impl bracket_pathfinding::prelude::Algorithm2D for TestMap {
 pub fn torchbearer_astar(c: &mut Criterion) {
     let map = TestMap::new(WIDTH, HEIGHT).with_walls();
     let from = (1, 4);
-    let to = (10, 4);
+    let to = (15, 8);
 
     c.bench_function("torchbearer_astar", |bencher| {
         bencher.iter(|| astar_path(&map, from, to));
@@ -119,7 +121,7 @@ pub fn torchbearer_astar(c: &mut Criterion) {
 pub fn bracket_astar(c: &mut Criterion) {
     let map = TestMap::new(WIDTH, HEIGHT).with_walls();
     let start = map.point2d_to_index((1, 4).into());
-    let end = map.point2d_to_index((10, 4).into());
+    let end = map.point2d_to_index((15, 8).into());
 
     c.bench_function("bracket_astar", |bencher| {
         bencher.iter(|| bracket_pathfinding::prelude::a_star_search(start, end, &map));
@@ -143,10 +145,12 @@ pub fn tcod_astar(c: &mut Criterion) {
     build_wall(&mut map, (0, 3), (3, 3));
     build_wall(&mut map, (3, 3), (3, 10));
     build_wall(&mut map, (5, 3), (5, 19));
+    build_wall(&mut map, (7, 0), (7, 16));
+    build_wall(&mut map, (9, 1), (9, 19));
 
     let mut astar = tcod::pathfinding::AStar::new_from_map(map, 10.0);
     let from = (1, 4);
-    let to = (10, 4);
+    let to = (15, 8);
 
     c.bench_function("tcod_astar", |bencher| {
         bencher.iter(|| astar.find(from, to));
