@@ -94,7 +94,7 @@ pub fn astar_path<T: Map>(map: &T, from: Point, to: Point) -> Option<Vec<Point>>
             break;
         }
 
-        for next in neighboors(map, &current, width, height).into_iter() {
+        for next in neighboors(map, current, width, height).into_iter() {
             let cost_so_far = origin_and_cost_so_far[&current].1;
             // let (_came_from, cost_so_far) = origin_and_cost_so_far[&current];
             let new_cost = cost_so_far + cost(&current, &next);
@@ -127,17 +127,10 @@ fn cost(from: &Point, to: &Point) -> f32 {
     basic + 0.001 * nudge
 }
 
-fn neighboors<T: Map>(map: &T, position: &Point, width: i32, height: i32) -> Vec<Point> {
-    let &(x, y) = position;
-    // This is a hack for nicer paths, as described here:
-    // https://www.redblobgames.com/pathfinding/a-star/implementation.html#troubleshooting-ugly-path
-    let candidate_neighboors = if (x + y) % 2 == 0 {
-        [(x, y + 1), (x, y - 1), (x - 1, y), (x + 1, y)]
-    } else {
-        [(x + 1, y), (x - 1, y), (x, y - 1), (x, y + 1)]
-    };
-
+fn neighboors<T: Map>(map: &T, (x, y): Point, width: i32, height: i32) -> Vec<Point> {
+    let candidate_neighboors = [(x, y + 1), (x, y - 1), (x - 1, y), (x + 1, y)];
     let mut neighboors = Vec::with_capacity(4);
+
     for &(x, y) in candidate_neighboors.iter() {
         if is_bounded(x, y, width, height) && map.is_walkable(x, y) {
             neighboors.push((x, y));
