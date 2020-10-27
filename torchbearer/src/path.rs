@@ -7,7 +7,7 @@ use std::{
 
 use crate::{Map, Point};
 
-/// An astar pathfinding implementation for a grid base map, where diagonal movements are disabled.
+/// An A* pathfinding implementation for a grid base map, where diagonal movements are disabled.
 /// Returns an optional vector containing the several points on the map to walk through, including the origin and destination.
 ///
 /// Implements the algorithm and fixes found on the

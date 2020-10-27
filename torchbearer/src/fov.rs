@@ -65,7 +65,7 @@ use crate::{bresenham::BresenhamLine, Map, Point};
 /// ```
 pub fn field_of_view<T: Map>(map: &T, from: Point, radius: i32) -> Vec<(i32, i32)> {
     let (x, y) = from;
-    let radius_square = radius.pow(2);
+    let radius_square = radius * radius;
     assert_in_bounds(map, x, y);
     if radius < 0 {
         panic!("A radius >= 0 is required, you used {}", radius);
@@ -203,12 +203,15 @@ pub fn field_of_view<T: Map>(map: &T, from: Point, radius: i32) -> Vec<(i32, i32
     visibles
         .into_iter()
         .enumerate()
-        .filter(|&(_index, visible)| visible)
-        .map(|(index, _)| {
-            (
-                index as i32 % sub_width + offset_x,
-                index as i32 / sub_width + offset_y,
-            )
+        .filter_map(|(index, visible)| {
+            if visible {
+                Some((
+                    index as i32 % sub_width + offset_x,
+                    index as i32 / sub_width + offset_y,
+                ))
+            } else {
+                None
+            }
         })
         .collect()
 }
@@ -232,8 +235,8 @@ fn cast_ray<T: Map>(
     map: &T,
     visibles: &mut Vec<bool>,
     width: i32,
-    origin: (i32, i32),
-    destination: (i32, i32),
+    origin: Point,
+    destination: Point,
     radius_square: i32,
     offset_x: i32,
     offset_y: i32,
@@ -241,9 +244,9 @@ fn cast_ray<T: Map>(
     let (origin_x, origin_y) = origin;
     let bresenham = BresenhamLine::new(origin, destination).skip(1);
     for (x, y) in bresenham {
-        let distance = (x - origin_x).pow(2) + (y - origin_y).pow(2);
-        // If we are within radius, or if we ignore radius whatsoever.
-        if distance <= radius_square || radius_square == 0 {
+        let distance_square = (x - origin_x) * (x - origin_x) + (y - origin_y) * (y - origin_y);
+        // If we are within radius.
+        if distance_square <= radius_square {
             visibles[(x + y * width) as usize] = true;
         }
 
