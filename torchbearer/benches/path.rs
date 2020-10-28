@@ -148,7 +148,7 @@ pub fn tcod_astar(c: &mut Criterion) {
     build_wall(&mut map, (7, 0), (7, 16));
     build_wall(&mut map, (9, 1), (9, 19));
 
-    let mut astar = tcod::pathfinding::AStar::new_from_map(map, 10.0);
+    let mut astar = tcod::pathfinding::AStar::new_from_map(map, 0.0);
     let from = (1, 4);
     let to = (15, 8);
 

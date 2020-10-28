@@ -1,9 +1,6 @@
 //! Collection of utility functions to find path.
 
-use std::{
-    cmp::Ordering,
-    collections::{BinaryHeap, HashMap},
-};
+use std::{cmp::Ordering, collections::BinaryHeap};
 
 use crate::{Map, Point};
 
@@ -73,53 +70,55 @@ pub fn astar_path<T: Map>(map: &T, from: Point, to: Point) -> Option<Vec<Point>>
     let capacity = rough_capacity(&from, &to);
     let mut frontier = BinaryHeap::with_capacity(capacity);
 
+    let from_index = point_to_index(from, width);
+    let to_index = point_to_index(to, width);
+
     frontier.push(State {
         cost: 0.,
-        item: from,
+        item: from_index,
     });
 
-    let mut origin_and_cost_so_far: HashMap<Point, (Option<Point>, f32)> =
-        HashMap::with_capacity(capacity);
-    origin_and_cost_so_far.insert(from, (None, 0.));
+    let mut came_from: Vec<Option<usize>> = vec![None; (width * height) as usize];
+    let mut costs: Vec<Option<f32>> = vec![None; (width * height) as usize];
+    costs[from_index] = Some(0.);
 
     let mut to_cost = 0.;
 
     while let Some(State {
-        item: current,
+        item: current_index,
         cost: current_cost,
     }) = frontier.pop()
     {
-        if current == to {
+        if current_index == to_index {
             to_cost = current_cost;
             break;
         }
 
-        let (x, y) = current;
+        let (x, y) = index_to_point(current_index, width);
+        let current = (x, y);
         for &(x, y) in &[(x, y + 1), (x, y - 1), (x - 1, y), (x + 1, y)] {
-            if !is_bounded(x, y, width, height) || !map.is_walkable(x, y) {
+            if x < 0 || y < 0 || x >= width || y >= height || !map.is_walkable(x, y) {
                 continue;
             }
             let next = (x, y);
+            let next_index = point_to_index(next, width);
 
-            // for next in neighboors(map, current, width, height).into_iter() {
-            let cost_so_far = origin_and_cost_so_far[&current].1;
-            // let (_came_from, cost_so_far) = origin_and_cost_so_far[&current];
+            let cost_so_far = costs[current_index].unwrap();
             let new_cost = cost_so_far + cost(&current, &next);
 
-            if !origin_and_cost_so_far.contains_key(&next)
-                || new_cost < origin_and_cost_so_far[&next].1
-            {
+            if costs[next_index].is_none() || new_cost < costs[next_index].unwrap() {
                 let priority = new_cost + heuristic(&next, &to);
                 frontier.push(State {
                     cost: priority,
-                    item: next,
+                    item: next_index,
                 });
-                origin_and_cost_so_far.insert(next, (Some(current), new_cost));
+                came_from[next_index] = Some(current_index);
+                costs[next_index] = Some(new_cost);
             }
         }
     }
 
-    reconstruct_path(from, to, origin_and_cost_so_far, to_cost)
+    reconstruct_path(from, to, came_from, to_cost, width)
 }
 
 fn cost(from: &Point, to: &Point) -> f32 {
@@ -137,18 +136,20 @@ fn cost(from: &Point, to: &Point) -> f32 {
 fn reconstruct_path(
     from: Point,
     to: Point,
-    mut came_from: HashMap<Point, (Option<Point>, f32)>,
+    came_from: Vec<Option<usize>>,
     cost: f32,
+    width: i32,
 ) -> Option<Vec<Point>> {
-    let mut current = Some(to);
+    let mut current = Some(point_to_index(to, width));
+    let target_index = point_to_index(from, width);
 
     let mut path = Vec::with_capacity((cost.floor() + 2.0) as usize);
 
-    while current != Some(from) {
+    while current != Some(target_index) {
         if let Some(position) = current {
             path.push(position);
-            current = if let Some(entry) = came_from.remove(&position) {
-                entry.0
+            current = if let Some(entry) = came_from[position] {
+                Some(entry)
             } else {
                 return None;
             }
@@ -156,13 +157,14 @@ fn reconstruct_path(
             return None;
         }
     }
-    path.push(from);
+    path.push(target_index);
 
-    Some(path.into_iter().rev().collect())
-}
-
-fn is_bounded(x: i32, y: i32, width: i32, height: i32) -> bool {
-    x >= 0 && y >= 0 && x < width && y < height
+    Some(
+        path.into_iter()
+            .map(|index| index_to_point(index, width))
+            .rev()
+            .collect(),
+    )
 }
 
 fn heuristic(a: &Point, b: &Point) -> f32 {
@@ -170,6 +172,14 @@ fn heuristic(a: &Point, b: &Point) -> f32 {
     let (xb, yb) = b;
 
     ((xa - xb).abs() + (ya - yb).abs()) as f32
+}
+
+fn point_to_index((x, y): Point, width: i32) -> usize {
+    (x + y * width) as usize
+}
+
+fn index_to_point(index: usize, width: i32) -> Point {
+    (index as i32 % width, index as i32 / width)
 }
 
 /// Estimate a basic capacity. Chances are there will still be re-allocation, but we at last prevent
