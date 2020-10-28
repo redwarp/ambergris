@@ -94,8 +94,8 @@ pub fn astar_path<T: Map>(map: &T, from: Point, to: Point) -> Option<Vec<Point>>
             break;
         }
 
-        let (x, y) = index_to_point(current_index, width);
-        let current = (x, y);
+        let current = index_to_point(current_index, width);
+        let (x, y) = current;
         for &(x, y) in &[(x, y + 1), (x, y - 1), (x - 1, y), (x + 1, y)] {
             if x < 0 || y < 0 || x >= width || y >= height || !map.is_walkable(x, y) {
                 continue;
