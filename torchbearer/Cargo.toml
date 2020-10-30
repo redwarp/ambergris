@@ -25,6 +25,3 @@ harness = false
 [[bench]]
 name = "path"
 harness = false
-
-[profile.release]
-lto = true
