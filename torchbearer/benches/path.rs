@@ -1,7 +1,11 @@
 use bracket_pathfinding::prelude::{Algorithm2D, SmallVec};
 use criterion::{criterion_group, criterion_main, Criterion};
 use tcod::Map as TcodMap;
-use torchbearer::{bresenham::BresenhamLine, path::astar_path, Map, Point};
+use torchbearer::{
+    bresenham::BresenhamLine,
+    path::{astar_path, astar_path_fourwaygrid, FourWayGridGraph},
+    Map, Point,
+};
 
 const WIDTH: i32 = 20;
 const HEIGHT: i32 = 20;
@@ -108,13 +112,24 @@ impl bracket_pathfinding::prelude::Algorithm2D for TestMap {
     }
 }
 
-pub fn torchbearer_astar(c: &mut Criterion) {
+pub fn torchbearer_astar_fourwaygrid(c: &mut Criterion) {
     let map = TestMap::new(WIDTH, HEIGHT).with_walls();
     let from = (1, 4);
     let to = (15, 8);
 
-    c.bench_function("torchbearer_astar", |bencher| {
-        bencher.iter(|| astar_path(&map, from, to));
+    c.bench_function("torchbearer_astar_fourwaygrid", |bencher| {
+        bencher.iter(|| astar_path_fourwaygrid(&map, from, to));
+    });
+}
+
+pub fn torchbearer_astar_graph(c: &mut Criterion) {
+    let map = TestMap::new(WIDTH, HEIGHT).with_walls();
+    let graph = FourWayGridGraph::new(&map);
+    let from = (1, 4);
+    let to = (15, 8);
+
+    c.bench_function("torchbearer_astar_graph", |bencher| {
+        bencher.iter(|| astar_path(&graph, from, to));
     });
 }
 
@@ -157,5 +172,11 @@ pub fn tcod_astar(c: &mut Criterion) {
     });
 }
 
-criterion_group!(benches, torchbearer_astar, bracket_astar, tcod_astar);
+criterion_group!(
+    benches,
+    torchbearer_astar_fourwaygrid,
+    torchbearer_astar_graph,
+    bracket_astar,
+    tcod_astar
+);
 criterion_main!(benches);

@@ -13,7 +13,7 @@
 //! ```
 //! use torchbearer::{Map, Point};
 //! use torchbearer::fov::field_of_view;
-//! use torchbearer::path::astar_path;
+//! use torchbearer::path::astar_path_fourwaygrid;
 //!
 //! struct SampleMap {
 //!     width: i32,
@@ -60,7 +60,7 @@
 //!     // (…)
 //! }
 //!
-//! if let Some(path) = astar_path(&sample_map, from, to) {
+//! if let Some(path) = astar_path_fourwaygrid(&sample_map, from, to) {
 //!     // (…)
 //! }
 //! ```
