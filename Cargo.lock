@@ -1751,6 +1751,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "torchbearer_example"
+version = "0.0.1"
+dependencies = [
+ "torchbearer",
+]
+
+[[package]]
 name = "ultraviolet"
 version = "0.4.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"

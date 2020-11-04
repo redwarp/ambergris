@@ -125,8 +125,8 @@ pub fn torchbearer_astar_fourwaygrid(c: &mut Criterion) {
 pub fn torchbearer_astar_graph(c: &mut Criterion) {
     let map = TestMap::new(WIDTH, HEIGHT).with_walls();
     let graph = FourWayGridGraph::new(&map);
-    let from = (1, 4);
-    let to = (15, 8);
+    let from = (1 + 4 * WIDTH) as usize;
+    let to = (15 + 8 * WIDTH) as usize;
 
     c.bench_function("torchbearer_astar_graph", |bencher| {
         bencher.iter(|| astar_path(&graph, from, to));

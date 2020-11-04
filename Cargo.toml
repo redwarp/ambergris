@@ -17,7 +17,7 @@ piston2d-graphics = "0.37.0"
 graphics_buffer = "0.7.5"
 
 [workspace]
-members = ["torchbearer"]
+members = ["torchbearer", "torchbearer/example"]
 
 [profile.release]
 lto = true

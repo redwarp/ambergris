@@ -4,6 +4,8 @@ use std::{cmp::Ordering, collections::BinaryHeap};
 
 use crate::{Map, Point};
 
+pub type NodeId = usize;
+
 /// An A* pathfinding implementation for a grid base map, where diagonal movements are disabled.
 /// Returns an optional vector containing the several points on the map to walk through, including the origin and destination.
 ///
@@ -65,7 +67,12 @@ use crate::{Map, Point};
 /// ```
 pub fn astar_path_fourwaygrid<T: Map>(map: &T, from: Point, to: Point) -> Option<Vec<Point>> {
     let graph = FourWayGridGraph::new(map);
-    astar_path(&graph, from, to)
+    astar_path(&graph, graph.point_to_index(from), graph.point_to_index(to)).map(|indices| {
+        indices
+            .into_iter()
+            .map(|index| graph.index_to_point(index))
+            .collect()
+    })
 }
 
 /// An A* pathfinding implementation for a grid base map.
@@ -130,23 +137,23 @@ pub fn astar_path_fourwaygrid<T: Map>(map: &T, from: Point, to: Point) -> Option
 ///     // (…)
 /// }
 /// ```
-pub fn astar_path<T: Graph>(graph: &T, from: Point, to: Point) -> Option<Vec<Point>> {
-    let (width, height) = graph.dimensions();
-    let capacity = rough_capacity(from, to);
+pub fn astar_path<T: Graph>(
+    graph: &T,
+    from_index: NodeId,
+    to_index: NodeId,
+) -> Option<Vec<NodeId>> {
+    let capacity = graph.node_count() / 2;
     let mut frontier = BinaryHeap::with_capacity(capacity);
-
-    let from_index = point_to_index(from, width);
-    let to_index = point_to_index(to, width);
 
     frontier.push(State {
         cost: 0.,
         item: from_index,
     });
 
-    let mut came_from: Vec<Option<usize>> = vec![None; (width * height) as usize];
-    let mut costs: Vec<Option<f32>> = vec![None; (width * height) as usize];
+    let mut came_from: Vec<Option<usize>> = vec![None; graph.node_count()];
+    let mut costs: Vec<Option<f32>> = vec![None; graph.node_count()];
     costs[from_index] = Some(0.);
-    let mut neighboors: Vec<Point> = Vec::with_capacity(4);
+    let mut neighboors: Vec<NodeId> = Vec::with_capacity(4);
 
     let mut to_cost = 0.;
 
@@ -160,22 +167,14 @@ pub fn astar_path<T: Graph>(graph: &T, from: Point, to: Point) -> Option<Vec<Poi
             break;
         }
 
-        let current = index_to_point(current_index, width);
-
         neighboors.clear();
-        graph.neighboors(current, &mut neighboors);
-        for &(x, y) in neighboors.iter() {
-            if x < 0 || y < 0 || x >= width || y >= height || !graph.is_walkable(x, y) {
-                continue;
-            }
-            let next = (x, y);
-            let next_index = point_to_index(next, width);
-
+        graph.neighboors(current_index, &mut neighboors);
+        for &next_index in neighboors.iter() {
             let cost_so_far = costs[current_index].unwrap();
-            let new_cost = cost_so_far + graph.cost_between(current, next);
+            let new_cost = cost_so_far + graph.cost_between(current_index, next_index);
 
             if costs[next_index].is_none() || new_cost < costs[next_index].unwrap() {
-                let priority = new_cost + graph.heuristic(next, to);
+                let priority = new_cost + graph.heuristic(next_index, to_index);
                 frontier.push(State {
                     cost: priority,
                     item: next_index,
@@ -186,18 +185,17 @@ pub fn astar_path<T: Graph>(graph: &T, from: Point, to: Point) -> Option<Vec<Poi
         }
     }
 
-    reconstruct_path(from, to, came_from, to_cost, width)
+    reconstruct_path(from_index, to_index, came_from, to_cost)
 }
 
 fn reconstruct_path(
-    from: Point,
-    to: Point,
-    came_from: Vec<Option<usize>>,
+    from: NodeId,
+    to: NodeId,
+    came_from: Vec<Option<NodeId>>,
     cost: f32,
-    width: i32,
-) -> Option<Vec<Point>> {
-    let mut current = Some(point_to_index(to, width));
-    let target_index = point_to_index(from, width);
+) -> Option<Vec<NodeId>> {
+    let mut current = Some(to);
+    let target_index = from;
 
     let mut path = Vec::with_capacity((cost.floor() + 2.0) as usize);
 
@@ -215,29 +213,7 @@ fn reconstruct_path(
     }
     path.push(target_index);
 
-    Some(
-        path.into_iter()
-            .map(|index| index_to_point(index, width))
-            .rev()
-            .collect(),
-    )
-}
-
-fn point_to_index((x, y): Point, width: i32) -> usize {
-    (x + y * width) as usize
-}
-
-fn index_to_point(index: usize, width: i32) -> Point {
-    (index as i32 % width, index as i32 / width)
-}
-
-/// Estimate a basic capacity. Chances are there will still be re-allocation, but we at last prevent
-/// a few useless one.
-fn rough_capacity(a: Point, b: Point) -> usize {
-    let (xa, ya) = a;
-    let (xb, yb) = b;
-    let distance = (xa - xb).abs().max((ya - yb).abs()) as usize;
-    distance * distance
+    Some(path.into_iter().rev().collect())
 }
 
 struct State<C: PartialOrd, T> {
@@ -277,21 +253,17 @@ impl<C: PartialOrd, T> PartialOrd for State<C, T> {
 /// A graph for the A* algorithm. This is intended for a grid based representation, where each
 /// node would be a square on the map.
 pub trait Graph {
-    /// The dimension of the graph. If the graph represent a map of 10 x 10 squares, the dimensions here
-    /// would also be (10, 10)
-    fn dimensions(&self) -> (i32, i32);
-
-    /// Is the node at position (x, y) walkable.
-    fn is_walkable(&self, x: i32, y: i32) -> bool;
+    /// The amount of nodes in the graph, used to create correctly sized vectors.
+    fn node_count(&self) -> usize;
 
     /// The cost between two points. A higher cost could represent a hard to cross terrain.
     /// If normal terrain would cost 1 to go from a to be, climbing a mountain side could cost 2.
-    fn cost_between(&self, a: Point, b: Point) -> f32;
+    fn cost_between(&self, a: NodeId, b: NodeId) -> f32;
 
     /// How close we are from our target.
     /// See https://www.redblobgames.com/pathfinding/a-star/introduction.html#greedy-best-first
     /// for more details about how it is useful.
-    fn heuristic(&self, a: Point, b: Point) -> f32;
+    fn heuristic(&self, a: NodeId, b: NodeId) -> f32;
 
     /// From point a, where can you go. Create a list of all possible neighboors.
     /// No need to filter the walkable ones, or the one in bounds: the algorithm
@@ -302,34 +274,46 @@ pub trait Graph {
     /// * `a` - the position whose neighboors you are looking for.
     /// * `into` - push the neighboors into this vector.
     ///   No need to clear explicitely, as `clear()` is called before each call to this method.
-    fn neighboors(&self, a: Point, into: &mut Vec<Point>);
+    fn neighboors(&self, a: NodeId, into: &mut Vec<NodeId>);
 }
 
 /// A wrapper around a Map, representing the graph for a four way grid type of Map, where
 /// it's possible to go north, east, south and west, but not in diagonal.
 pub struct FourWayGridGraph<'a, T: Map> {
     map: &'a T,
+    width: i32,
+    height: i32,
 }
 
 impl<'a, T: Map> FourWayGridGraph<'a, T> {
     pub fn new(map: &'a T) -> Self {
-        FourWayGridGraph { map }
-    }
-}
-
-impl<'a, T: Map> Graph for FourWayGridGraph<'a, T> {
-    fn dimensions(&self) -> (i32, i32) {
-        self.map.dimensions()
+        let (width, height) = map.dimensions();
+        FourWayGridGraph { map, width, height }
     }
 
+    /// Is the node at position (x, y) walkable.
     fn is_walkable(&self, x: i32, y: i32) -> bool {
         self.map.is_walkable(x, y)
     }
 
-    fn cost_between(&self, a: Point, b: Point) -> f32 {
+    fn point_to_index(&self, (x, y): Point) -> usize {
+        (x + y * self.width) as usize
+    }
+
+    fn index_to_point(&self, index: usize) -> Point {
+        (index as i32 % self.width, index as i32 / self.width)
+    }
+}
+
+impl<'a, T: Map> Graph for FourWayGridGraph<'a, T> {
+    fn node_count(&self) -> usize {
+        (self.width * self.height) as usize
+    }
+
+    fn cost_between(&self, a: NodeId, b: NodeId) -> f32 {
         let basic = 1.;
-        let (x1, y1) = a;
-        let (x2, y2) = b;
+        let (x1, y1) = self.index_to_point(a);
+        let (x2, y2) = self.index_to_point(b);
         let nudge = if ((x1 + y1) % 2 == 0 && x2 != x1) || ((x1 + y1) % 2 == 1 && y2 != y1) {
             1.
         } else {
@@ -338,19 +322,31 @@ impl<'a, T: Map> Graph for FourWayGridGraph<'a, T> {
         basic + 0.001 * nudge
     }
 
-    fn heuristic(&self, a: Point, b: Point) -> f32 {
-        let (xa, ya) = a;
-        let (xb, yb) = b;
+    fn heuristic(&self, a: NodeId, b: NodeId) -> f32 {
+        let (xa, ya) = self.index_to_point(a);
+        let (xb, yb) = self.index_to_point(b);
 
         ((xa - xb).abs() + (ya - yb).abs()) as f32
     }
 
-    fn neighboors(&self, a: Point, into: &mut Vec<Point>) {
-        let (x, y) = a;
-        into.push((x, y + 1));
-        into.push((x, y - 1));
-        into.push((x - 1, y));
-        into.push((x + 1, y));
+    fn neighboors(&self, a: NodeId, into: &mut Vec<NodeId>) {
+        let (x, y) = self.index_to_point(a);
+
+        fn add_to_neighboors_if_qualified<'a, T: Map>(
+            graph: &FourWayGridGraph<'a, T>,
+            (x, y): Point,
+            into: &mut Vec<NodeId>,
+        ) {
+            if x < 0 || y < 0 || x >= graph.width || y >= graph.height || !graph.is_walkable(x, y) {
+                return;
+            }
+            into.push(graph.point_to_index((x, y)));
+        };
+
+        add_to_neighboors_if_qualified(&self, (x, y + 1), into);
+        add_to_neighboors_if_qualified(&self, (x, y - 1), into);
+        add_to_neighboors_if_qualified(&self, (x - 1, y), into);
+        add_to_neighboors_if_qualified(&self, (x + 1, y), into);
     }
 }
 
