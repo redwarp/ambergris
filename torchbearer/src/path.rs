@@ -126,14 +126,18 @@ pub fn astar_path_fourwaygrid<T: Map>(map: &T, from: Point, to: Point) -> Option
 ///     }
 /// }
 ///
-/// let sample_map = SampleMap::new(16, 10);
+/// let width = 16;
+/// let height = 10;
+/// let sample_map = SampleMap::new(width, height);
 ///
 /// // (…) You probably want at this point to add some walls to your map.
 ///
 /// // Use one of the pre-made graphs (good for simple use cases), or implement your own.
 /// let graph = FourWayGridGraph::new(&sample_map);
+/// let from = (1 + 1 * width) as usize; // position to index
+/// let to = (3 + 8 * width) as usize; // position to index
 ///
-/// if let Some(path) = astar_path(&graph, (1,1), (3,8)) {
+/// if let Some(path) = astar_path(&graph, to, from) {
 ///     // (…)
 /// }
 /// ```
