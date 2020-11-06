@@ -1,4 +1,4 @@
-use graphics::{clear, image, rectangle, Line, Transformed};
+use graphics::{clear, rectangle, Image, Line, Transformed};
 use piston_window::{
     Button, Flip, MouseCursorEvent, PistonWindow, PressEvent, RenderEvent, Texture, TextureContext,
     TextureSettings, WindowSettings,
@@ -7,7 +7,7 @@ use torchbearer::{path::astar_path_fourwaygrid, Map, Point};
 
 const MAP_WIDTH: i32 = 20;
 const MAP_HEIGHT: i32 = 20;
-const SCALE: i32 = 48;
+const SCALE: i32 = 24;
 
 struct ExampleMap {
     width: i32,
@@ -64,6 +64,7 @@ fn main() {
         factory: window.factory.clone(),
         encoder: window.factory.create_command_buffer().into(),
     };
+    let image = Image::new().rect([0.0, 0.0, SCALE as f64, SCALE as f64]);
     let goblin_texture = Texture::from_path(
         &mut texture_context,
         sprites.join("goblin.png"),
@@ -130,8 +131,9 @@ fn main() {
                 // Draw from position
                 let translate_x = (SCALE * from.0) as f64;
                 let translate_y = (SCALE * from.1) as f64;
-                image(
+                image.draw(
                     &goblin_texture,
+                    &Default::default(),
                     context.transform.trans(translate_x, translate_y),
                     graphics,
                 );
@@ -139,8 +141,9 @@ fn main() {
                 // Draw to position
                 let translate_x = (SCALE * to.0) as f64;
                 let translate_y = (SCALE * to.1) as f64;
-                image(
+                image.draw(
                     &target_texture,
+                    &Default::default(),
                     context.transform.trans(translate_x, translate_y),
                     graphics,
                 );
