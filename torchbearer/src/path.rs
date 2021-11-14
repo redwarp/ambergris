@@ -345,7 +345,7 @@ impl<'a, T: Map> Graph for FourWayGridGraph<'a, T> {
                 return;
             }
             into.push(graph.point_to_index((x, y)));
-        };
+        }
 
         add_to_neighboors_if_qualified(&self, (x, y + 1), into);
         add_to_neighboors_if_qualified(&self, (x, y - 1), into);

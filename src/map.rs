@@ -178,10 +178,10 @@ pub fn make_map(world: &mut World, level: i32) -> Map {
     let mut rooms: Vec<Rect> = vec![];
 
     for _ in 0..MAX_ROOM {
-        let width = rng.gen_range(ROOM_MIN_SIZE, ROOM_MAX_SIZE + 1);
-        let height = rng.gen_range(ROOM_MIN_SIZE, ROOM_MAX_SIZE + 1);
-        let x = rng.gen_range(0, MAP_WIDTH - width);
-        let y = rng.gen_range(0, MAP_HEIGHT - height);
+        let width = rng.gen_range(ROOM_MIN_SIZE..ROOM_MAX_SIZE + 1);
+        let height = rng.gen_range(ROOM_MIN_SIZE..ROOM_MAX_SIZE + 1);
+        let x = rng.gen_range(0..MAP_WIDTH - width);
+        let y = rng.gen_range(0..MAP_HEIGHT - height);
 
         let new_room = Rect::new(x, y, width, height);
         let failed = rooms.iter().any(|other| new_room.intersects_with(other));
@@ -247,11 +247,11 @@ fn create_vertical_tunnel(y1: i32, y2: i32, x: i32, map: &mut Map) {
 }
 
 fn place_objects(world: &mut World, rng: &mut StdRng, map: &Map, room: &Rect) {
-    let num_monsters = rng.gen_range(0, MAX_ROOM_MONSTERS);
+    let num_monsters = rng.gen_range(0..MAX_ROOM_MONSTERS);
 
     for _ in 0..num_monsters {
-        let x = rng.gen_range(room.x1 + 1, room.x2);
-        let y = rng.gen_range(room.y1 + 1, room.y2);
+        let x = rng.gen_range(room.x1 + 1..room.x2);
+        let y = rng.gen_range(room.y1 + 1..room.y2);
 
         if !map.is_blocked((x, y).into()) {
             let monster_type = if rng.gen::<f32>() < 0.8 {
@@ -263,10 +263,10 @@ fn place_objects(world: &mut World, rng: &mut StdRng, map: &Map, room: &Rect) {
         }
     }
 
-    let num_items = rng.gen_range(0, MAX_ROOM_ITEMS);
+    let num_items = rng.gen_range(0..MAX_ROOM_ITEMS);
     for _ in 0..num_items {
-        let x = rng.gen_range(room.x1 + 1, room.x2);
-        let y = rng.gen_range(room.y1 + 1, room.y2);
+        let x = rng.gen_range(room.x1 + 1..room.x2);
+        let y = rng.gen_range(room.y1 + 1..room.y2);
 
         if !map.is_blocked((x, y).into()) {
             match rng.gen::<f32>() {

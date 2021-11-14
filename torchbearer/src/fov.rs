@@ -224,10 +224,10 @@ fn is_out_of_bounds<M: Map>(map: &M, x: i32, y: i32) -> bool {
 fn assert_in_bounds<M: Map>(map: &M, x: i32, y: i32) {
     let (width, height) = map.dimensions();
     if is_out_of_bounds(map, x, y) {
-        panic!(format!(
+        panic!(
             "(x, y) should be between (0,0) and ({}, {}), got ({}, {})",
             width, height, x, y
-        ));
+        );
     }
 }
 
@@ -336,10 +336,7 @@ mod tests {
     impl SampleMap {
         pub fn new(width: i32, height: i32) -> Self {
             if width <= 0 && height <= 0 {
-                panic!(format!(
-                    "Width and height should be > 0, got ({},{})",
-                    width, height
-                ));
+                panic!("Width and height should be > 0, got ({},{})", width, height);
             }
             SampleMap {
                 transparent: vec![true; (width * height) as usize],
@@ -437,7 +434,7 @@ mod tests {
         let mut fov = SampleMap::new(WIDTH, HEIGHT);
         let mut rng = StdRng::seed_from_u64(42);
         for _ in 0..RANDOM_WALLS {
-            let (x, y) = (rng.gen_range(0, WIDTH), rng.gen_range(0, HEIGHT));
+            let (x, y) = (rng.gen_range(0..WIDTH), rng.gen_range(0..HEIGHT));
             fov.set_transparent(x, y, false);
         }
         fov.set_transparent(POSITION_X, POSITION_Y, true);

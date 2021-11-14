@@ -13,9 +13,9 @@ keywords = ["gamedev", "pathfinding", "field-of-view"]
 [dependencies]
 
 [dev-dependencies]
-bracket-pathfinding = "0.8.1"
-criterion = "0.3.3"
-rand = "0.7.3"
+bracket-pathfinding = "0.8.4"
+criterion = "0.3.5"
+rand = "0.8.4"
 tcod = "0.15.0"
 
 [[bench]]

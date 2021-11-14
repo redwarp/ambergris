@@ -49,10 +49,7 @@ impl bracket_pathfinding::prelude::Algorithm2D for SampleMap {
 impl SampleMap {
     pub fn new(width: i32, height: i32) -> Self {
         if width <= 0 && height <= 0 {
-            panic!(format!(
-                "Width and height should be > 0, got ({},{})",
-                width, height
-            ));
+            panic!("Width and height should be > 0, got ({},{})", width, height);
         }
         SampleMap {
             transparent: vec![true; (width * height) as usize],
@@ -64,7 +61,7 @@ impl SampleMap {
     pub fn randomize_walls(mut self) -> Self {
         let mut rng = StdRng::seed_from_u64(42);
         for _ in 0..RANDOM_WALLS {
-            let (x, y) = (rng.gen_range(0, WIDTH), rng.gen_range(0, HEIGHT));
+            let (x, y) = (rng.gen_range(0..WIDTH), rng.gen_range(0..HEIGHT));
             self.set_transparent(x, y, false);
         }
         self.set_transparent(POSITION_X, POSITION_Y, true);
@@ -119,7 +116,7 @@ pub fn tcod_fov_random_walls(c: &mut Criterion) {
 
     let mut rng = StdRng::seed_from_u64(42);
     for _ in 0..RANDOM_WALLS {
-        let (x, y) = (rng.gen_range(0, WIDTH), rng.gen_range(0, HEIGHT));
+        let (x, y) = (rng.gen_range(0..WIDTH), rng.gen_range(0..HEIGHT));
         map.set(x as i32, y as i32, false, false);
     }
     map.set(POSITION_X as i32, POSITION_Y as i32, true, true);
