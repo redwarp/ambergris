@@ -12,5 +12,6 @@ Why Ambregris? I think it's as generic of a name as can be! It hints at some mys
 The fonts were downloaded from https://developers.google.com/fonts/
 
 ![You are dead](screenshots/you_are_dead.png)
+![Inventory](screenshots/inventory.png)
 
 This repository also host [torchbearer](torchbearer), a library with some utilities like pathfinding or field of vision calculation.
