@@ -13,10 +13,9 @@ use crate::{
 use crate::{game::Interact, systems};
 use crate::{inventory::Inventory, resources::SharedInfo};
 use graphics::character::CharacterCache;
-use graphics_buffer::BufferGlyphs;
 use legion::*;
 use piston_window::*;
-use std::{collections::VecDeque, time::Instant};
+use std::collections::VecDeque;
 
 const GRID_SIZE: u32 = 16;
 const TORCH_RADIUS: i32 = 10;
@@ -78,10 +77,6 @@ impl Engine {
         while let Some(event) = events.next(&mut window) {
             if let Some(button) = event.press_args() {
                 pending_button = Some(button);
-
-                if let Some(Button::Keyboard(Key::P)) = pending_button {
-                    self.take_screenshot(state);
-                }
             }
 
             event.mouse_cursor(|position| {
@@ -418,26 +413,6 @@ impl Engine {
                 burst: targeting.burst,
             },
         }
-    }
-
-    fn take_screenshot(&self, state: &mut State) {
-        let now = Instant::now();
-        let mut glyph_cache = BufferGlyphs::new(
-            FONT_NAME,
-            (),
-            TextureSettings::new().filter(Filter::Nearest),
-        )
-        .expect("Couldn't load the font.");
-        let mut buffer = graphics_buffer::RenderBuffer::new(
-            self.width as u32 * GRID_SIZE,
-            self.height as u32 * GRID_SIZE,
-        );
-        let context = Context::new();
-        self.render(state, &mut buffer, context, &mut glyph_cache);
-
-        buffer.save("screenshot.png").ok();
-
-        println!("Taking screenshot took {} ms", now.elapsed().as_millis());
     }
 
     fn render<G, C>(&self, state: &State, graphics: &mut G, context: Context, glyph_cache: &mut C)
