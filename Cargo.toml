@@ -2,7 +2,7 @@
 name = "ambergris"
 version = "0.1.0"
 authors = ["Redwarp <redwarp@gmail.com>"]
-edition = "2018"
+edition = "2021"
 description = "Every journey must start somewhere."
 readme = "README.md"
 license = "Apache-2.0"
