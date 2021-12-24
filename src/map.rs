@@ -3,13 +3,9 @@ use crate::{
     spawner::{self, MonsterType},
 };
 
-use legion::component;
-use legion::IntoQuery;
-use legion::World;
-use rand::Rng;
-use rand::{rngs::StdRng, SeedableRng};
-use torchbearer::fov::field_of_view;
-use torchbearer::Map as FieldOfVisionMap;
+use legion::{component, IntoQuery, World};
+use rand::{rngs::StdRng, Rng, SeedableRng};
+use torchbearer::{fov::field_of_view, Map as FieldOfVisionMap, Point};
 
 const MAP_WIDTH: i32 = 80;
 const MAP_HEIGHT: i32 = 40;
@@ -153,11 +149,11 @@ impl FieldOfVisionMap for Map {
         (self.width, self.height)
     }
 
-    fn is_transparent(&self, x: i32, y: i32) -> bool {
+    fn is_transparent(&self, (x, y): Point) -> bool {
         !self.tiles[(x + y * self.width) as usize].block_sight
     }
 
-    fn is_walkable(&self, x: i32, y: i32) -> bool {
+    fn is_walkable(&self, (x, y): Point) -> bool {
         !self.tiles[(x + y * self.width) as usize].blocking
     }
 }

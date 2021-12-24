@@ -9,15 +9,11 @@ license = "Apache-2.0"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [dependencies]
-rand = "0.8.4"
-legion = "0.3.1"
-torchbearer = { path = "torchbearer" }
-piston_window = "0.113.0"
-piston2d-graphics = "0.37.0"
-graphics_buffer = "0.7.7"
-
-[workspace]
-members = ["torchbearer", "torchbearer/example"]
+rand = "0.8"
+legion = "0.4"
+torchbearer = "0.4"
+piston_window = "0.121"
+piston2d-graphics = "0.41"
 
 [profile.release]
 lto = true
