@@ -5,7 +5,10 @@ use crate::{
 
 use legion::{component, IntoQuery, World};
 use rand::{rngs::StdRng, Rng, SeedableRng};
-use torchbearer::{fov::field_of_view, Map as FieldOfVisionMap, Point};
+use torchbearer::{
+    fov::{field_of_view, VisionMap},
+    Point,
+};
 
 const MAP_WIDTH: i32 = 80;
 const MAP_HEIGHT: i32 = 40;
@@ -144,13 +147,19 @@ impl Map {
     }
 }
 
-impl FieldOfVisionMap for Map {
+impl torchbearer::fov::VisionMap for Map {
     fn dimensions(&self) -> (i32, i32) {
         (self.width, self.height)
     }
 
     fn is_transparent(&self, (x, y): Point) -> bool {
         !self.tiles[(x + y * self.width) as usize].block_sight
+    }
+}
+
+impl torchbearer::path::PathMap for Map {
+    fn dimensions(&self) -> (i32, i32) {
+        VisionMap::dimensions(self)
     }
 
     fn is_walkable(&self, (x, y): Point) -> bool {

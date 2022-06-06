@@ -1,6 +1,9 @@
-use torchbearer::{fov::field_of_view, Map, Point};
+use torchbearer::{
+    fov::{field_of_view, VisionMap},
+    Point,
+};
 
-pub fn field_of_view_no_walls<T: Map>(
+pub fn field_of_view_no_walls<T: VisionMap>(
     map: &T,
     from: Point,
     radius: i32,
