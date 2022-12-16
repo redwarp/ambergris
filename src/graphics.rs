@@ -1,12 +1,20 @@
 use bevy::{
+    core_pipeline::clear_color::ClearColorConfig,
     prelude::{
-        AssetServer, Assets, Commands, Handle, Image, Plugin, Res, ResMut, Resource, StartupStage,
-        Vec2,
+        AssetServer, Assets, Camera, Camera2d, Camera2dBundle, ClearColor, Color, Commands,
+        Component, Handle, Image, Plugin, Res, ResMut, Resource, StartupStage, Vec2,
     },
-    sprite::TextureAtlas,
+    render::view::RenderLayers,
+    sprite::{Sprite, SpriteBundle, TextureAtlas},
 };
 
 pub const TILE_SIZE: f32 = 32.;
+
+#[derive(Component)]
+pub struct MapCamera;
+
+#[derive(Component)]
+pub struct UiCamera;
 
 #[derive(Resource)]
 pub struct Graphics {
@@ -18,7 +26,9 @@ pub struct GraphicsPlugin;
 
 impl Plugin for GraphicsPlugin {
     fn build(&self, app: &mut bevy::prelude::App) {
-        app.add_startup_system_to_stage(StartupStage::PreStartup, load_sprites);
+        app.insert_resource(ClearColor(Color::rgb(0.2, 0.2, 0.2)))
+            .add_startup_system_to_stage(StartupStage::PreStartup, load_sprites)
+            .add_startup_system(setup_cameras);
     }
 }
 
@@ -52,4 +62,33 @@ fn load_sprites(
         characters_atlas,
         tiles_atlas,
     });
+}
+
+fn setup_cameras(mut commands: Commands) {
+    commands.spawn(Camera2dBundle::default()).insert(MapCamera);
+
+    commands
+        .spawn(Camera2dBundle {
+            camera: Camera {
+                priority: 1,
+                ..Default::default()
+            },
+            camera_2d: Camera2d {
+                clear_color: ClearColorConfig::None,
+            },
+            ..Default::default()
+        })
+        .insert(RenderLayers::layer(1))
+        .insert(UiCamera);
+
+    commands
+        .spawn(SpriteBundle {
+            sprite: Sprite {
+                color: Color::rgb(0.2, 0.2, 0.8),
+                custom_size: Some(Vec2::new(200., 100.)),
+                ..Default::default()
+            },
+            ..Default::default()
+        })
+        .insert(RenderLayers::layer(1));
 }
