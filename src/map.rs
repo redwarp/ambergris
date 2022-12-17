@@ -1,3 +1,5 @@
+use std::str::FromStr;
+
 use bevy::prelude::*;
 use torchbearer::{fov::VisionMap, path::PathMap};
 
@@ -7,7 +9,8 @@ pub struct MapPlugin;
 
 impl Plugin for MapPlugin {
     fn build(&self, app: &mut App) {
-        app.init_resource::<Map>().add_startup_system(create_map);
+        app.init_resource::<MapInfo>()
+            .add_startup_system(create_map);
     }
 }
 
@@ -26,23 +29,79 @@ pub struct Size {
     pub height: u32,
 }
 
-#[derive(Resource)]
+#[derive(Debug, Default)]
 pub struct Map {
     pub size: Size,
     pub spawn_point: Position,
-    cells: Vec<MapCell>,
-    _tiles_id: Vec<Entity>,
+    pub cells: Vec<MapCell>,
 }
 
-impl Default for Map {
-    fn default() -> Self {
-        Self {
-            size: Size::default(),
-            spawn_point: Position::default(),
-            cells: Vec::new(),
-            _tiles_id: Vec::new(),
-        }
+impl Map {
+    fn spawn_sprites(&self, commands: &mut Commands, graphics: &Graphics) -> Vec<Entity> {
+        self.cells
+            .as_slice()
+            .chunks_exact(self.size.width as usize)
+            .enumerate()
+            .fold(
+                Vec::<Entity>::with_capacity(self.cells.len()),
+                |mut acc, (y, row)| {
+                    acc.extend(
+                        row.iter().enumerate().map(|(x, cell)| {
+                            spawn_tile(commands, graphics, x as i32, y as i32, cell)
+                        }),
+                    );
+                    acc
+                },
+            )
     }
+}
+
+impl FromStr for Map {
+    type Err = anyhow::Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let mut spawn_point = None;
+        let mut height = 0;
+        let mut width = 0;
+
+        let cells: Vec<MapCell> = s
+            .lines()
+            .enumerate()
+            .flat_map(|(y, line)| {
+                height += 1;
+                width = line.len();
+
+                line.chars()
+                    .enumerate()
+                    .map(|(x, char)| {
+                        if char == '@' {
+                            spawn_point = Some(Position {
+                                x: x as i32,
+                                y: y as i32,
+                            });
+                            println!("Spawn point: {:?}", spawn_point);
+                        }
+                        char.into()
+                    })
+                    .collect::<Vec<_>>()
+            })
+            .collect();
+
+        Ok(Map {
+            size: Size {
+                width: width as u32,
+                height: height as u32,
+            },
+            spawn_point: spawn_point.unwrap_or(Position { x: 0, y: 0 }),
+            cells,
+        })
+    }
+}
+
+#[derive(Resource, Default)]
+pub struct MapInfo {
+    pub map: Map,
+    _tiles_id: Vec<Entity>,
 }
 
 impl VisionMap for Map {
@@ -65,7 +124,8 @@ impl PathMap for Map {
     }
 }
 
-struct MapCell {
+#[derive(Debug, Clone, Copy)]
+pub struct MapCell {
     walkable: bool,
     transparent: bool,
 }
@@ -85,56 +145,26 @@ impl From<char> for MapCell {
     }
 }
 
-pub fn create_map(mut commands: Commands, graphics: Res<Graphics>, mut map: ResMut<Map>) {
-    let mut spawn_point = None;
-    // Debug code, will trash that later.
-    let mut height = 0;
-    let mut width = 0;
-
-    let (cells, _tiles_id): (Vec<MapCell>, Vec<Entity>) = std::fs::read_to_string("assets/map.txt")
+pub fn create_map(mut commands: Commands, graphics: Res<Graphics>, mut map_info: ResMut<MapInfo>) {
+    let map = std::fs::read_to_string("assets/map.txt")
         .unwrap()
-        .lines()
-        .enumerate()
-        .flat_map(|(y, line)| {
-            height += 1;
-            width = line.len();
+        .parse::<Map>()
+        .unwrap();
+    let _tiles_id = map.spawn_sprites(&mut commands, &graphics);
 
-            line.chars()
-                .enumerate()
-                .map(|(x, char)| {
-                    if char == 'x' {
-                        spawn_point = Some(Position {
-                            x: x as i32,
-                            y: y as i32,
-                        });
-                        println!("Spawn point: {:?}", spawn_point);
-                    }
-                    (
-                        char.into(),
-                        spawn_tile(&mut commands, &graphics, x as i32, y as i32, char),
-                    )
-                })
-                .collect::<Vec<_>>()
-        })
-        .unzip();
-
-    println!("Map size: {}x{}", width, height);
-
-    *map = Map {
-        size: Size {
-            width: width as u32,
-            height: height as u32,
-        },
-        spawn_point: spawn_point.unwrap_or_else(|| Position { x: 0, y: 0 }),
-        cells,
-        _tiles_id,
-    };
+    *map_info = MapInfo { map, _tiles_id };
 }
 
-fn spawn_tile(commands: &mut Commands, graphics: &Graphics, x: i32, y: i32, tile: char) -> Entity {
-    let tile = match tile {
-        '#' => 16,
-        _ => 48,
+fn spawn_tile(
+    commands: &mut Commands,
+    graphics: &Graphics,
+    x: i32,
+    y: i32,
+    cell: &MapCell,
+) -> Entity {
+    let tile = match cell.walkable {
+        false => 16,
+        true => 48,
     };
 
     commands

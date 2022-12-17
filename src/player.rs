@@ -2,7 +2,7 @@ use bevy::prelude::*;
 
 use crate::{
     graphics::{Graphics, MapCamera, TILE_SIZE},
-    map::{create_map, Map},
+    map::{create_map, MapInfo},
 };
 
 pub struct PlayerPlugin;
@@ -17,8 +17,8 @@ impl Plugin for PlayerPlugin {
 #[derive(Component)]
 struct Player;
 
-fn spawn_player(mut commands: Commands, graphics: Res<Graphics>, map: Res<Map>) {
-    let spawn_position = map.spawn_point;
+fn spawn_player(mut commands: Commands, graphics: Res<Graphics>, map_info: Res<MapInfo>) {
+    let spawn_position = map_info.map.spawn_point;
     println!("Reading spawn point: {spawn_position:?}");
 
     commands.spawn((
@@ -37,6 +37,7 @@ fn spawn_player(mut commands: Commands, graphics: Res<Graphics>, map: Res<Map>) 
     ));
 }
 
+#[allow(clippy::type_complexity)]
 fn camera_follow(
     player_query: Query<&Transform, With<Player>>,
     mut camera_query: Query<&mut Transform, (Without<Player>, With<Camera2d>, With<MapCamera>)>,

@@ -5,7 +5,7 @@ use bevy::{
         Component, Handle, Image, Plugin, Res, ResMut, Resource, StartupStage, Vec2,
     },
     render::view::RenderLayers,
-    sprite::{Sprite, SpriteBundle, TextureAtlas},
+    sprite::TextureAtlas,
 };
 
 pub const TILE_SIZE: f32 = 32.;
@@ -67,6 +67,9 @@ fn load_sprites(
 fn setup_cameras(mut commands: Commands) {
     commands.spawn(Camera2dBundle::default()).insert(MapCamera);
 
+    // Second camera for UI elements. To add stuff for the UI camera, add the component
+    // RenderLayers::layer(1) to the entity.
+    // It will then be rendered without moving with the map camera.
     commands
         .spawn(Camera2dBundle {
             camera: Camera {
@@ -80,15 +83,4 @@ fn setup_cameras(mut commands: Commands) {
         })
         .insert(RenderLayers::layer(1))
         .insert(UiCamera);
-
-    commands
-        .spawn(SpriteBundle {
-            sprite: Sprite {
-                color: Color::rgb(0.2, 0.2, 0.8),
-                custom_size: Some(Vec2::new(200., 100.)),
-                ..Default::default()
-            },
-            ..Default::default()
-        })
-        .insert(RenderLayers::layer(1));
 }

@@ -11,6 +11,7 @@ readme = "README.md"
 bevy = "0.9"
 bevy-inspector-egui = "0.14.0"
 torchbearer = "0.5"
+anyhow = "1.0"
 
 # Enable a small amount of optimization in debug mode
 [profile.dev]
