@@ -1,6 +1,7 @@
 use std::str::FromStr;
 
 use bevy::prelude::*;
+use bevy_inspector_egui::Inspectable;
 use torchbearer::{fov::VisionMap, path::PathMap};
 
 use crate::graphics::{Graphics, TILE_SIZE};
@@ -17,7 +18,7 @@ impl Plugin for MapPlugin {
 #[derive(Component)]
 struct Tile;
 
-#[derive(Component, Default, Debug, Clone, Copy)]
+#[derive(Component, Default, Debug, Clone, Copy, Inspectable)]
 pub struct Position {
     pub x: i32,
     pub y: i32,
@@ -53,6 +54,10 @@ impl Map {
                     acc
                 },
             )
+    }
+
+    fn in_bounds(&self, (x, y): (i32, i32)) -> bool {
+        x >= 0 && y >= 0 && x < self.size.width as i32 && y < self.size.height as i32
     }
 }
 
@@ -101,26 +106,52 @@ impl FromStr for Map {
 #[derive(Resource, Default)]
 pub struct MapInfo {
     pub map: Map,
+    pub blocked: Vec<bool>,
     _tiles_id: Vec<Entity>,
 }
 
-impl VisionMap for Map {
-    fn dimensions(&self) -> (i32, i32) {
-        (self.size.width as i32, self.size.height as i32)
+impl MapInfo {
+    pub fn index_from_position(&self, position: &Position) -> usize {
+        (position.y * self.map.size.width as i32 + position.x) as usize
     }
 
-    fn is_transparent(&self, (x, y): torchbearer::Point) -> bool {
-        self.cells[y as usize * self.size.width as usize + x as usize].transparent
+    pub fn in_bounds(&self, position: &Position) -> bool {
+        self.map.in_bounds((position.x, position.y))
+    }
+
+    pub fn set_blocked(&mut self, position: &Position, blocked: bool) {
+        if self.in_bounds(position) {
+            let index = self.index_from_position(position);
+            self.blocked[index] = blocked;
+        }
     }
 }
 
-impl PathMap for Map {
+impl VisionMap for MapInfo {
+    fn dimensions(&self) -> (i32, i32) {
+        (self.map.size.width as i32, self.map.size.height as i32)
+    }
+
+    fn is_transparent(&self, (x, y): torchbearer::Point) -> bool {
+        if self.map.in_bounds((x, y)) {
+            self.map.cells[y as usize * self.map.size.width as usize + x as usize].transparent
+        } else {
+            false
+        }
+    }
+}
+
+impl PathMap for MapInfo {
     fn dimensions(&self) -> (i32, i32) {
         VisionMap::dimensions(self)
     }
 
     fn is_walkable(&self, (x, y): torchbearer::Point) -> bool {
-        self.cells[y as usize * self.size.width as usize + x as usize].walkable
+        if self.map.in_bounds((x, y)) {
+            !self.blocked[y as usize * self.map.size.width as usize + x as usize]
+        } else {
+            false
+        }
     }
 }
 
@@ -151,8 +182,15 @@ pub fn create_map(mut commands: Commands, graphics: Res<Graphics>, mut map_info:
         .parse::<Map>()
         .unwrap();
     let _tiles_id = map.spawn_sprites(&mut commands, &graphics);
+    let blocked = map.cells.iter().map(|c| !c.walkable).collect();
 
-    *map_info = MapInfo { map, _tiles_id };
+    *map_info = MapInfo {
+        map,
+        blocked,
+        _tiles_id,
+    };
+    let spawn_point = map_info.map.spawn_point;
+    map_info.set_blocked(&spawn_point, true);
 }
 
 fn spawn_tile(
