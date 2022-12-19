@@ -2,42 +2,21 @@ use bevy::prelude::*;
 
 use crate::{
     actions::{self, MoveAction},
-    graphics::{Graphics, MapCamera, TILE_SIZE},
-    map::{create_map, MapInfo, Position},
+    graphics::MapCamera,
+    map::Position,
 };
 
 pub struct PlayerPlugin;
 
 impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut bevy::prelude::App) {
-        app.add_startup_system(spawn_player.after(create_map))
-            .add_system(camera_follow.after(actions::handle_move_actions))
+        app.add_system(camera_follow.after(actions::handle_move_actions))
             .add_system(player_movement.before(actions::handle_move_actions));
     }
 }
 
 #[derive(Component)]
-struct Player;
-
-fn spawn_player(mut commands: Commands, graphics: Res<Graphics>, map_info: Res<MapInfo>) {
-    let spawn_position = map_info.map.spawn_point;
-    println!("Reading spawn point: {spawn_position:?}");
-
-    commands.spawn((
-        SpriteSheetBundle {
-            sprite: TextureAtlasSprite::new(0),
-            texture_atlas: graphics.characters_atlas.clone(),
-            transform: Transform::from_xyz(
-                spawn_position.x as f32 * TILE_SIZE,
-                -(spawn_position.y as f32) * TILE_SIZE,
-                10.0,
-            ),
-            ..Default::default()
-        },
-        Player,
-        spawn_position,
-    ));
-}
+pub struct Player;
 
 #[allow(clippy::type_complexity)]
 fn camera_follow(
@@ -64,8 +43,6 @@ fn player_movement(
         let mut target_position = *position;
         target_position.x += dx;
         target_position.y += dy;
-
-        println!("Moving player by {dx}, {dy}. Initial position: {position:?}, target position: {target_position:?}");
 
         move_actions.send(MoveAction {
             entity,

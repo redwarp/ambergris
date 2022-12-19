@@ -1,17 +1,23 @@
 use std::str::FromStr;
 
 use bevy::prelude::*;
-use bevy_inspector_egui::Inspectable;
+use bevy_inspector_egui::{Inspectable, RegisterInspectable};
 use torchbearer::{fov::VisionMap, path::PathMap};
 
-use crate::graphics::{Graphics, TILE_SIZE};
+use crate::{
+    graphics::{Graphics, TILE_SIZE},
+    spawner::spawn_creature,
+    stages::UpdateStages,
+};
 
 pub struct MapPlugin;
 
 impl Plugin for MapPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<MapInfo>()
-            .add_startup_system(create_map);
+            .add_startup_system(create_map)
+            .add_system_to_stage(UpdateStages::UpdateMap, update_blocked_tiles)
+            .register_inspectable::<Position>();
     }
 }
 
@@ -24,16 +30,25 @@ pub struct Position {
     pub y: i32,
 }
 
+#[derive(Component)]
+pub struct Solid;
+
 #[derive(Default, Debug, Clone, Copy)]
 pub struct Size {
     pub width: u32,
     pub height: u32,
 }
 
+#[derive(Debug)]
+pub struct SpawnPoint {
+    pub spawn_type: char,
+    pub position: Position,
+}
+
 #[derive(Debug, Default)]
 pub struct Map {
     pub size: Size,
-    pub spawn_point: Position,
+    pub spawn_positions: Vec<SpawnPoint>,
     pub cells: Vec<MapCell>,
 }
 
@@ -65,9 +80,9 @@ impl FromStr for Map {
     type Err = anyhow::Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let mut spawn_point = None;
         let mut height = 0;
         let mut width = 0;
+        let mut spawn_positions = vec![];
 
         let cells: Vec<MapCell> = s
             .lines()
@@ -79,13 +94,16 @@ impl FromStr for Map {
                 line.chars()
                     .enumerate()
                     .map(|(x, char)| {
-                        if char == '@' {
-                            spawn_point = Some(Position {
-                                x: x as i32,
-                                y: y as i32,
+                        if char != '#' && char != ' ' {
+                            spawn_positions.push(SpawnPoint {
+                                spawn_type: char,
+                                position: Position {
+                                    x: x as i32,
+                                    y: y as i32,
+                                },
                             });
-                            println!("Spawn point: {:?}", spawn_point);
                         }
+
                         char.into()
                     })
                     .collect::<Vec<_>>()
@@ -97,7 +115,7 @@ impl FromStr for Map {
                 width: width as u32,
                 height: height as u32,
             },
-            spawn_point: spawn_point.unwrap_or(Position { x: 0, y: 0 }),
+            spawn_positions,
             cells,
         })
     }
@@ -124,6 +142,12 @@ impl MapInfo {
             let index = self.index_from_position(position);
             self.blocked[index] = blocked;
         }
+    }
+
+    pub fn reset_blocked(&mut self) {
+        self.blocked.clear();
+        self.blocked
+            .extend(self.map.cells.iter().map(|cell| !cell.walkable));
     }
 }
 
@@ -184,13 +208,25 @@ pub fn create_map(mut commands: Commands, graphics: Res<Graphics>, mut map_info:
     let _tiles_id = map.spawn_sprites(&mut commands, &graphics);
     let blocked = map.cells.iter().map(|c| !c.walkable).collect();
 
+    for SpawnPoint {
+        spawn_type,
+        position,
+    } in map.spawn_positions.iter()
+    {
+        spawn_creature(
+            &mut commands,
+            &graphics,
+            *spawn_type,
+            position.x,
+            position.y,
+        );
+    }
+
     *map_info = MapInfo {
         map,
         blocked,
         _tiles_id,
     };
-    let spawn_point = map_info.map.spawn_point;
-    map_info.set_blocked(&spawn_point, true);
 }
 
 fn spawn_tile(
@@ -217,4 +253,11 @@ fn spawn_tile(
             Position { x, y },
         ))
         .id()
+}
+
+fn update_blocked_tiles(query: Query<&Position, With<Solid>>, mut map_info: ResMut<MapInfo>) {
+    map_info.reset_blocked();
+    for position in query.iter() {
+        map_info.set_blocked(position, true);
+    }
 }

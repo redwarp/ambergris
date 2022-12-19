@@ -3,7 +3,7 @@ use torchbearer::path::PathMap;
 
 use crate::{
     graphics::TILE_SIZE,
-    map::{MapInfo, Position},
+    map::{MapInfo, Position, Solid},
 };
 
 pub struct MoveAction {
@@ -22,24 +22,22 @@ impl Plugin for ActionsPlugin {
 
 pub fn handle_move_actions(
     mut move_actions: EventReader<MoveAction>,
-    mut query: Query<(&mut Position, &mut Transform)>,
+    mut query: Query<(&mut Position, &mut Transform, Option<&Solid>)>,
     mut map_info: ResMut<MapInfo>,
 ) {
     for move_action in move_actions.iter() {
-        let (mut position, mut transform) = query.get_mut(move_action.entity).unwrap();
-        println!("Handling move action, new position");
+        let (mut position, mut transform, solid) = query.get_mut(move_action.entity).unwrap();
 
         if map_info.is_walkable((move_action.target_position.x, move_action.target_position.y)) {
-            map_info.set_blocked(&position, false);
+            if solid.is_some() {
+                map_info.set_blocked(&position, false);
+                map_info.set_blocked(&move_action.target_position, true);
+            }
 
             *position = move_action.target_position;
 
-            map_info.set_blocked(&position, true);
-
             transform.translation.x = position.x as f32 * TILE_SIZE;
             transform.translation.y = -position.y as f32 * TILE_SIZE;
-        } else {
-            println!("New position blocked!");
         }
     }
 }
